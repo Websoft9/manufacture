@@ -45,7 +45,7 @@ jobs:
             -d '{"title":'$milestone',"state":"open"}'
         fi
         
-        list=$(jq "[.task[] | {appname:.appname,version:.version[],distribution:.distribution[],platform:.platform[],os:.os[],assignees:.assignees}]" offersku.json)
+        list=$(jq "[.task[] | {appname:.appname,distribution:.distribution[],platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
         length=$(echo $list | jq '.|length')
         project_id=$(curl --request POST \
             --url https://api.github.com/graphql \
@@ -53,18 +53,24 @@ jobs:
             --data '{"query":"query{organization(login: \"Websoft9\") {projectV2(number: 11){id}}}"}' | jq -r .data.organization.projectV2.id)
         echo $project_id
         declare -A map
-        map=(["童颖佳"]="Tooy1011" ["张露"]="zl-go" ["王思宇"]="LalicNine" ["徐月婷"]="xyt52" ["宋美欣"]="auaaaa"  ["刘毓灵"]="lessfrim"   ["周亚楠"]="Camelliw")
+        map=(["金晟"]="jinsheng200303" ["崔志坚"]="czj69233" ["欧玉成"]="cbnb233")
         
         # 创建issue
         for ((index=0;index<$length;index++));do
           appname=$(echo $list | jq -r ".[$index].appname")
-          version=$(echo $list | jq -r ".[$index].version")
           distribution=$(echo $list | jq -r ".[$index].distribution")
           platform=$(echo $list | jq -r ".[$index].platform")
           os=$(echo $list | jq -r ".[$index].os")
           assignee=${map[$(echo $list | jq -r ".[$index].assignees")]}
+          updateornew=$(echo $list | jq -r ".[$index].updateornew")
           stone=$(echo $milestone | sed 's/\"//g')
-          issue_number=$(gh issue create --assignee $assignee --title "$appname $distribution $version on $os on $platform" --body-file template.md --milestone $stone | awk -F "/" '{print $NF}')
+          applabel="App"
+          # 根据appname的值来决定applabel的值
+          if [[ $appname == "websoft9" ]]; then
+              applabel=""
+          fi
+          
+          issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$applabel" --milestone $stone | awk -F "/" '{print $NF}')
           # 关联project
           issue_id=$(curl \
             -H "Accept: application/vnd.github+json" \
