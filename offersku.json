@@ -6,7 +6,7 @@
       "distribution": ["企业版"],
       "platform": ["AWS"],
       "os": ["ubuntu22.04,debian12"],
-      "assignees": "周亚楠",
+      "assignees": "金晟",
       "updateornew": "update"
      },
      {
@@ -14,7 +14,7 @@
       "distribution": ["企业版"],
       "platform": ["Azure","AWS"],
       "os": ["ubuntu22.04"],
-      "assignees": "周亚楠",
+      "assignees": "崔志坚",
       "updateornew": "new"
      }
   ]
