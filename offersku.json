@@ -2,7 +2,7 @@
    "milestone": "20241214",
    "task":[
      {
-      "appname": "redis",
+      "appname": "Python",
       "distribution": ["企业版"],
       "platform": ["AWS"],
       "os": ["ubuntu22.04"],
