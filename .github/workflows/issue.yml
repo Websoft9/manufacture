@@ -44,37 +44,7 @@ jobs:
             https://api.github.com/repos/${{github.repository_owner}}/manufacture/milestones \
             -d '{"title":'$milestone',"state":"open"}'
         fi
-        # query the ID of the project
-        PROJECT_NUMBER=11
-        ORGANIZATION="Websoft9"
-        gh api graphql -f query='
-            query($org: String!, $number: Int!) {
-              organization(login: $org){
-                projectV2(number: $number) {
-                  id
-                  fields(first:20) {
-                    nodes {
-                      ... on ProjectV2Field {
-                        id
-                        name
-                      }
-                      ... on ProjectV2SingleSelectField {
-                        id
-                        name
-                        options {
-                          id
-                          name
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }' -f org=$ORGANIZATION -F number=$PROJECT_NUMBER > project_data.json
-        echo 'PROJECT_ID='$(jq '.data.organization.projectV2.id' project_data.json) >> $GITHUB_ENV
-        echo 'STATUS_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") | .id' project_data.json) >> $GITHUB_ENV
-        echo 'TODO_OPTION_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") | .options[] | select(.name=="制造") |.id' project_data.json) >> $GITHUB_ENV
-        
+
         list=$(jq "[.task[] | {appname:.appname,distribution:.distribution[],platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
         length=$(echo $list | jq '.|length')
         declare -A map
@@ -90,34 +60,15 @@ jobs:
           updateornew=$(echo $list | jq -r ".[$index].updateornew")
           stone=$(echo $milestone | sed 's/\"//g')
           applabel="App"
+          status="制造"
           # 根据appname的值来决定applabel的值
           if [[ $appname == "websoft9" ]]; then
               issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
+              gh issue edit $issue_number --status=$status
           else
               issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$applabel" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
+              gh issue edit $issue_number --status=$status
           fi
           echo $issue_number
-
-          # 关联Status
-          gh api graphql -f query='
-            mutation (
-              $project: ID!
-              $item: ID!
-              $status_field: ID!
-              $status_value: String!
-            ) {
-              set_status: updateProjectV2ItemFieldValue(input: {
-                projectId: $project
-                itemId: $item
-                fieldId: $status_field
-                value: {
-                  singleSelectOptionId: $status_value
-                  }
-              }) {
-                projectV2Item {
-                  id
-                  }
-              }
-            }' -f project=$PROJECT_ID -f item=$issue_number -f status_field=$STATUS_FIELD_ID -f status_value=${{ env.TODO_OPTION_ID }} --silent
         done
 
