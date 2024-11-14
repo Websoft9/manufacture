@@ -1,11 +1,11 @@
 {  
-   "mailstone": "20241214",
+   "milestone": "20241214",
    "task":[
      {
       "appname": "redis",
       "distribution": ["企业版"],
       "platform": ["AWS"],
-      "os": ["ubuntu22.04,debian12"],
+      "os": ["ubuntu22.04","debian12"],
       "assignees": "金晟",
       "updateornew": "update"
      },
