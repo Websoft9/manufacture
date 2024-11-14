@@ -60,15 +60,11 @@ jobs:
           updateornew=$(echo $list | jq -r ".[$index].updateornew")
           stone=$(echo $milestone | sed 's/\"//g')
           applabel="App"
-          status="制造"
           # 根据appname的值来决定applabel的值
           if [[ $appname == "websoft9" ]]; then
               issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
-              gh issue edit $issue_number --status=$status
           else
               issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$applabel" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
-              gh issue edit $issue_number --status=$status
           fi
           echo $issue_number
         done
-
