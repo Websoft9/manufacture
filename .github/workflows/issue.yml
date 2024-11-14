@@ -22,7 +22,7 @@ jobs:
         done
     
         # 创建milestone
-        milestone=$(cat offersku.json | jq '.mailstone')
+        milestone=$(cat offersku.json | jq '.milestone')
         allMilestones=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}"\
@@ -47,11 +47,6 @@ jobs:
         
         list=$(jq "[.task[] | {appname:.appname,distribution:.distribution[],platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
         length=$(echo $list | jq '.|length')
-        project_id=$(curl --request POST \
-            --url https://api.github.com/graphql \
-            --header 'Authorization: Bearer ${{ secrets.ISSUE_TOKEN }}' \
-            --data '{"query":"query{organization(login: \"Websoft9\") {projectV2(number: 11){id}}}"}' | jq -r .data.organization.projectV2.id)
-        echo $project_id
         declare -A map
         map=(["金晟"]="jinsheng200303" ["崔志坚"]="czj69233" ["欧玉成"]="cbnb233")
         
@@ -67,19 +62,10 @@ jobs:
           applabel="App"
           # 根据appname的值来决定applabel的值
           if [[ $appname == "websoft9" ]]; then
-              applabel=""
+              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
+          else
+              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$applabel" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
           fi
-          
-          issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$applabel" --milestone $stone | awk -F "/" '{print $NF}')
-          # 关联project
-          issue_id=$(curl \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{github.token}}"\
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{github.repository_owner}}/manufacture/issues/$issue_number | jq -r .node_id)
-          curl --request POST \
-            --url https://api.github.com/graphql \
-            --header 'Authorization: Bearer ${{ secrets.ISSUE_TOKEN }}' \
-            --data '{"query":"mutation {addProjectV2ItemById(input: {projectId: \"'$project_id'\" contentId: \"'$issue_id'\"}) {item {id}}}"}'
+          echo $issue_number
         done
 
