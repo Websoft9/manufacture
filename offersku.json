@@ -5,17 +5,9 @@
       "appname": "redis",
       "distribution": ["企业版"],
       "platform": ["AWS"],
-      "os": ["ubuntu22.04","debian12"],
+      "os": ["ubuntu22.04"],
       "assignees": "金晟",
       "updateornew": "update"
-     },
-     {
-      "appname": "websoft9",
-      "distribution": ["企业版"],
-      "platform": ["Azure","AWS"],
-      "os": ["ubuntu22.04"],
-      "assignees": "崔志坚",
-      "updateornew": "new"
      }
   ]
 }
