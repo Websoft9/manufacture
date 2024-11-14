@@ -118,6 +118,6 @@ jobs:
                   id
                   }
               }
-            }' -f project=$PROJECT_ID -f item=$issue_number -f status_field=$STATUS_FIELD_ID -f status_value=${{ env.TODO_OPTION_ID }} -f
+            }' -f project=$PROJECT_ID -f item=$issue_number -f status_field=$STATUS_FIELD_ID -f status_value=${{ env.TODO_OPTION_ID }} --silent
         done
 
