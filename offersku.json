@@ -1,12 +1,20 @@
 {  
-   "milestone": "20241214",
+   "milestone": "20241120",
    "task":[
      {
-      "appname": "Navicat",
+      "appname": "phpfpmapache",
       "distribution": ["企业版"],
       "platform": ["AWS"],
       "os": ["ubuntu22.04"],
       "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "phpfpmnginx",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
       "updateornew": "update"
      }
   ]
