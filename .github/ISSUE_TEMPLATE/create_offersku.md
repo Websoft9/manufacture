@@ -1,7 +1,7 @@
 ---
 name: 商品生产与上架
 about: 依据产品设计规范和运行规范制作镜像，并通过两项测试生产合格商品；将合格商品在各大云平台上架
-title: New Offer/SKU on Azure/AWS/阿里云/华为云/AWS(中国)/华为云-Flexus/腾讯云/AlibabaCloud/HUAWEICLOUD/HUAWEICLOUD-Flexus
+title: New Offer/SKU on Azure/AWS/阿里云/华为云//华为云-Flexus/AWS(中国)/腾讯云/AlibabaCloud/HUAWEICLOUD/HUAWEICLOUD-Flexus
 labels: 
 assignees: 
 
