@@ -2,7 +2,7 @@
    "milestone": "20241129",
    "task":[
      {
-      "appname": "erpnext",
+      "appname": "haproxy",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
@@ -10,15 +10,15 @@
       "updateornew": "update"
      },
      {
-      "appname": "espocrm",
+      "appname": "graylog",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "magento",
+      "appname": "grafana",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04"],
@@ -26,7 +26,7 @@
       "updateornew": "update"
      },
      {
-      "appname": "kafka",
+      "appname": "gitlab",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
@@ -34,15 +34,15 @@
       "updateornew": "update"
      },
      {
-      "appname": "jenkins",
+      "appname": "ghost",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "os": ["ubuntu22.04"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "openjdk",
+      "appname": "phpfpmnginx",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
