@@ -2,62 +2,6 @@
    "milestone": "20241129",
    "task":[
      {
-      "appname": "tensorflow",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12"],
-      "assignees": "欧玉成",
-      "updateornew": "update"
-     },
-     {
-      "appname": "suitecrm",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04"],
-      "assignees": "金晟",
-      "updateornew": "update"
-     },
-     {
-      "appname": "ruby",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "崔志坚",
-      "updateornew": "update"
-     },
-     {
-      "appname": "rocketmq",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "欧玉成",
-      "updateornew": "update"
-     },
-     {
-      "appname": "redmine",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04"],
-      "assignees": "金晟",
-      "updateornew": "update"
-     },
-     {
-      "appname": "rabbitmq",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "崔志坚",
-      "updateornew": "update"
-     },
-     {
-      "appname": "python",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "欧玉成",
-      "updateornew": "update"
-     },
-     {
       "appname": "prestashop",
       "distribution": ["企业版"],
       "platform": ["Azure"],
@@ -72,6 +16,46 @@
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "崔志坚",
       "updateornew": "update"
+     },
+     {
+      "appname": "portainer",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "assignees": "欧玉成",
+      "updateornew": "update"
+     },
+     {
+      "appname": "php",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "superset",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["Debian12","Oraclelinux","AlmaLinux"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "couchdb",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "activemq",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "assignees": "欧玉成",
+      "updateornew": "update"
      }
-  ]
+   ]
 }
