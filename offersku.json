@@ -1,21 +1,29 @@
 {  
-   "milestone": "20241120",
+   "milestone": "20241129",
    "task":[
      {
-      "appname": "phpfpmapache",
+      "appname": "odoo",
       "distribution": ["企业版"],
-      "platform": ["AWS"],
-      "os": ["ubuntu22.04"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "phpfpmnginx",
+      "appname": "nodejs",
       "distribution": ["企业版"],
-      "platform": ["AWS"],
-      "os": ["ubuntu22.04"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "崔志坚",
       "updateornew": "update"
+     },
+     {
+        "appname": "nextcloud",
+        "distribution": ["企业版"],
+        "platform": ["Azure"],
+        "os": ["ubuntu22.04","Debian12"],
+        "assignees": "欧玉成",
+        "updateornew": "update"
      }
   ]
 }
