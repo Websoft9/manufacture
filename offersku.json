@@ -1,24 +1,32 @@
 {  
    "milestone": "20241129",
    "task":[
-    {
-      "appname": "onlyofficedocs",
+     {
+      "appname": "tensorflow",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12"],
+      "assignees": "欧玉成",
+      "updateornew": "update"
+     },
+     {
+      "appname": "suitecrm",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "mediawiki",
+      "appname": "ruby",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "desktop xfce",
+      "appname": "rocketmq",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
@@ -26,15 +34,39 @@
       "updateornew": "update"
      },
      {
-      "appname": "desktop mate",
+      "appname": "redmine",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "os": ["ubuntu22.04"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "desktop gnome",
+      "appname": "rabbitmq",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "python",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "assignees": "欧玉成",
+      "updateornew": "update"
+     },
+     {
+      "appname": "prestashop",
+      "distribution": ["企业版"],
+      "platform": ["Azure"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "postgresql",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
