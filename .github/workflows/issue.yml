@@ -52,6 +52,7 @@ jobs:
         
         # 创建issue
         for ((index=0;index<$length;index++));do
+          sleep 3
           appname=$(echo $list | jq -r ".[$index].appname")
           distribution=$(echo $list | jq -r ".[$index].distribution")
           platform=$(echo $list | jq -r ".[$index].platform")
