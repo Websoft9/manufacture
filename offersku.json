@@ -2,60 +2,52 @@
    "milestone": "20241129",
    "task":[
      {
-      "appname": "prestashop",
+      "appname": "erpnext",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "postgresql",
+      "appname": "espocrm",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "os": ["ubuntu22.04"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "portainer",
+      "appname": "magento",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "os": ["ubuntu22.04"],
       "assignees": "欧玉成",
       "updateornew": "update"
      },
      {
-      "appname": "php",
+      "appname": "kafka",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "superset",
+      "appname": "jenkins",
       "distribution": ["企业版"],
       "platform": ["Azure"],
-      "os": ["Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "金晟",
-      "updateornew": "update"
-     },
-     {
-      "appname": "couchdb",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04"],
+      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "activemq",
+      "appname": "openjdk",
       "distribution": ["企业版"],
       "platform": ["Azure"],
       "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
       "assignees": "欧玉成",
       "updateornew": "update"
      }
-   ]
+  ]
 }
