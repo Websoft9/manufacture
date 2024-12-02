@@ -1,52 +1,148 @@
 {  
-   "milestone": "20241129",
+   "milestone": "20241206",
    "task":[
      {
-      "appname": "haproxy",
+      "appname": "bytebase",
       "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "graylog",
+      "appname": "codeserver",
       "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "崔志坚",
-      "updateornew": "update"
-     },
-     {
-      "appname": "grafana",
-      "distribution": ["企业版"],
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["ubuntu22.04"],
-      "assignees": "欧玉成",
+      "assignees": "金晟",
       "updateornew": "update"
      },
      {
-      "appname": "gitlab",
+      "appname": "directus",
       "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "elasticsearch",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "flowise",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
       "assignees": "金晟",
       "updateornew": "update"
      },
      {
       "appname": "ghost",
       "distribution": ["企业版"],
-      "platform": ["Azure"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "jenkins",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "kasmweb",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "mattermost",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "neo4j",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "appname": "opensearch",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
       "os": ["ubuntu22.04"],
       "assignees": "崔志坚",
       "updateornew": "update"
      },
      {
-      "appname": "phpfpmnginx",
+      "appname": "portainer",
       "distribution": ["企业版"],
-      "platform": ["Azure"],
-      "os": ["ubuntu22.04","Debian12","Oraclelinux","AlmaLinux"],
-      "assignees": "欧玉成",
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "prometheus",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "suitecrm",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "tooljet",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "wordpress",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04","Debian12","RedHat9"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "zammad",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "appname": "discourse",
+      "distribution": ["企业版"],
+      "platform": ["AWS"],
+      "os": ["ubuntu22.04"],
+      "assignees": "崔志坚",
       "updateornew": "update"
      }
   ]
