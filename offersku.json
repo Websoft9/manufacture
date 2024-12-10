@@ -2,7 +2,7 @@
    "milestone": "20241217",
    "task":[
      {
-      "type": "app",
+      "type": "App",
       "appname": "portainer",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
