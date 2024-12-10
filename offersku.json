@@ -3,7 +3,7 @@
    "task":[
      {
       "type": "Solution",
-      "appname": "多语言运行环境（轻量级 PaaS）",
+      "appname": "运维监控开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -12,7 +12,7 @@
      },
      {
       "type": "Solution",
-      "appname": "开源消息队列一站式托管平台",
+      "appname": "电商建站开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -21,8 +21,8 @@
      },
      {
       "type": "Solution",
-      "appname": "多数据库一站式托管平台",
-      "distribution": ["标准版"],
+      "appname": "企业网盘与文档开源应用汇聚平台",
+      "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "崔志坚",
@@ -30,7 +30,7 @@
      },
      {
       "type": "Solution",
-      "appname": "运营数字化开源应用汇聚平台",
+      "appname": "企业网盘与文档开源应用汇聚平台",
       "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -39,7 +39,7 @@
      },
      {
       "type": "Solution",
-      "appname": "运营数字化开源应用汇聚平台",
+      "appname": "企业建站与内容营销开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -48,8 +48,8 @@
      },
      {
       "type": "Solution",
-      "appname": "数据分析开源应用汇聚平台",
-      "distribution": ["标准版"],
+      "appname": "企业办公协作开源应用汇聚平台",
+      "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "金晟",
@@ -57,7 +57,7 @@
      },
      {
       "type": "Solution",
-      "appname": "数据分析开源应用汇聚平台",
+      "appname": "企业通信联络开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -66,8 +66,8 @@
      },
      {
       "type": "Solution",
-      "appname": "高校软件实训开源应用汇聚平台",
-      "distribution": ["标准版"],
+      "appname": "机器学习与 AI 开源应用汇聚平台",
+      "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "崔志坚",
@@ -75,7 +75,7 @@
      },
      {
       "type": "Solution",
-      "appname": "高校软件实训开源应用汇聚平台",
+      "appname": "自动化开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
@@ -84,8 +84,8 @@
      },
      {
       "type": "Solution",
-      "appname": "开发者开源应用汇聚平台",
-      "distribution": ["标准版"],
+      "appname": "网络与安全开源应用汇聚平台",
+      "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "崔志坚",
@@ -93,7 +93,16 @@
      },
      {
       "type": "Solution",
-      "appname": "开发者开源应用汇聚平台",
+      "appname": "家庭服务器开源应用汇聚平台",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "金晟",
+      "updateornew": "new"
+     },
+     {
+      "type": "Solution",
+      "appname": "物联网开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
