@@ -2,13 +2,13 @@
    "milestone": "20241217",
    "task":[
      {
-      "type": "Solution",
-      "appname": "多数据库一站式托管平台",
-      "distribution": ["企业版"],
+      "type": "websoft9",
+      "appname": "Desktop-gnome",
+      "distribution": ["入门版"],
       "platform": ["阿里云"],
-      "os": ["ubuntu22.04"],
+      "os": ["ubuntu24.04","CentOSStream9","AlibabaCloudLinux"],
       "assignees": "金晟",
-      "updateornew": "new"
+      "updateornew": "update"
      }
   ]
 }
