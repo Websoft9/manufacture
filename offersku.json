@@ -8,25 +8,7 @@
       "platform": ["阿里云"],
       "os": ["ubuntu22.04"],
       "assignees": "金晟",
-      "updateornew": "update"
-     },
-     {
-      "type": "App",
-      "appname": "openjdk",
-      "distribution": ["标准版"],
-      "platform": ["AWS"],
-      "os": ["AlmaLinux"],
-      "assignees": "崔志坚",
-      "updateornew": "update"
-     },
-     {
-      "type": "websoft9",
-      "appname": "only websoft9",
-      "distribution": ["入门版"],
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
+      "updateornew": "new"
      }
   ]
 }
