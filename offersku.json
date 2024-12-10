@@ -3,10 +3,19 @@
    "task":[
      {
       "type": "App",
-      "appname": "portainer",
+      "appname": "tomcat",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
-      "os": ["ubuntu22.04","CentOS7.9","AlibabaCloudLinux","debian","CentOSStream9","RockyLinux","AlmaLinux"],
+      "os": ["ubuntu24.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Python",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
       "assignees": "金晟",
       "updateornew": "update"
      }
