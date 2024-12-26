@@ -1,14 +1,68 @@
 {  
-   "milestone": "20241217",
+   "milestone": "20250106",
    "task":[
+     {
+      "type": "Solution",
+      "appname": "开源消息队列一站式托管平台",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "多数据库一站式托管平台",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "运营数字化开源应用汇聚平台",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "数据分析开源应用汇聚平台",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "高校软件实训开源应用汇聚平台",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "开发者开源应用汇聚平台",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
      {
       "type": "Solution",
       "appname": "运维监控开源应用汇聚平台",
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "金晟",
-      "updateornew": "new"
+      "assignees": "邱锋",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -16,26 +70,17 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "邱锋",
-      "updateornew": "new"
-     },
-     {
-      "type": "Solution",
-      "appname": "企业网盘与文档开源应用汇聚平台",
-      "distribution": ["入门版"],
-      "platform": ["阿里云"],
-      "os": ["ubuntu24.04"],
       "assignees": "崔志坚",
-      "updateornew": "new"
+      "updateornew": "update"
      },
      {
       "type": "Solution",
       "appname": "企业网盘与文档开源应用汇聚平台",
-      "distribution": ["标准版"],
+      "distribution": ["入门版,标准版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "金晟",
-      "updateornew": "new"
+      "assignees": "邱锋",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -43,8 +88,8 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "崔志坚",
-      "updateornew": "new"
+      "assignees": "邱锋",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -52,8 +97,8 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "金晟",
-      "updateornew": "new"
+      "assignees": "邱锋",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -62,7 +107,7 @@
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "邱锋",
-      "updateornew": "new"
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -71,7 +116,7 @@
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "崔志坚",
-      "updateornew": "new"
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -79,8 +124,8 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "邱锋",
-      "updateornew": "new"
+      "assignees": "崔志坚",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -88,8 +133,8 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "崔志坚",
-      "updateornew": "new"
+      "assignees": "金晟",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -97,8 +142,8 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
-      "assignees": "金晟",
-      "updateornew": "new"
+      "assignees": "邱锋",
+      "updateornew": "update"
      },
      {
       "type": "Solution",
@@ -106,8 +151,152 @@
       "distribution": ["入门版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "Solution",
+      "appname": "PHP/Java/Python/Ruby/Golang 全能运行环境（基于 Wesoft9 面板）",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Python & Django 运行环境 (基于 Wesoft9 面板 )",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Java 运行环境 (基于 Wesoft9 面板 )",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Desktop-gnome",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["RockyLinux"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Desktop-gnome",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["AlibabaCloudLinux"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Desktop-gnome",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["CentOSStream"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "Desktop-gnome",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
       "assignees": "金晟",
-      "updateornew": "new"
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu22.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["CentOSStream"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["AlibabaCloudLinux"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["RockyLinux"],
+      "assignees": "崔志坚",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["debian"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "portainer",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["AlmaLinux"],
+      "assignees": "金晟",
+      "updateornew": "update"
+     },
+     {
+      "type": "App",
+      "appname": "wordpress",
+      "distribution": ["入门版"],
+      "platform": ["阿里云"],
+      "os": ["ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "",
+      "appname": "websoft9",
+      "distribution": ["入门版,标准版"],
+      "platform": ["阿里云"],
+      "os": ["Oraclelinux"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "type": "",
+      "appname": "websoft9",
+      "distribution": ["标准版"],
+      "platform": ["阿里云"],
+      "os": ["AlibabaCloudLinux"],
+      "assignees": "金晟",
+      "updateornew": "update"
      }
   ]
 }
