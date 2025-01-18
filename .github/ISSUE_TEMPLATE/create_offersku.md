@@ -77,7 +77,7 @@ assignees:
 ### 过程
 
 - [ ] 完成草稿
-- [ ] 填写 OfferID/ProductID 到 Contentful 主数据
+- [ ] 填写 OfferID/ProductID 到 Contentful 主数据（仅针对新上架）
 - [ ] 更新 Docker-library 中 APP 版本号
 - [ ] 上架前内审，已纠错内容【         】
 - [ ] 平台审核
@@ -87,5 +87,4 @@ assignees:
 - [ ] 镜像分发全球
 - [ ] 购买测试（100次）
 - [ ] 删除镜像和快照
-- [ ] contenful数据完善（仅针对新产品）
 - [ ] 微搭业务系统数据完善（仅针对新产品）
