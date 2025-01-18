@@ -74,8 +74,6 @@ assignees:
 
 ## 上架
 
-### 过程
-
 - [ ] 完成草稿
 - [ ] 填写 OfferID/ProductID 到 Contentful 主数据（仅针对新上架）
 - [ ] 上架前内审，已纠错内容【         】
