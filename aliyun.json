@@ -1,145 +1,113 @@
 {  
-   "milestone": "20250206",
+   "milestone": "20250217",
    "task":[
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["ubuntu24.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Alibaba Cloud linux"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Debian"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Rocky Linux"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["CentOS Stream9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["AlmaLinux"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "自适应镜像（适用websoft9,app,solution）",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["centos7.9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["CentOS Stream 9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Alibaba Cloud linux"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Rocky Linux"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 7"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 8"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "desktop-GNOME",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "docker",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 7"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "docker",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 8"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "type": "Solution",
       "appname": "docker",
-      "distribution": ["标准版"],
       "platform": ["阿里云"],
       "os": ["Oracle Linux 9"],
       "assignees": "邱锋",
