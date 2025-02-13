@@ -45,7 +45,7 @@ jobs:
             -d '{"title":'$milestone',"state":"open"}'
         fi
 
-        list=$(jq "[.task[] | {type:.type,appname:.appname,distribution:.distribution[],platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
+        list=$(jq "[.task[] | {appname:.appname,platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
         length=$(echo $list | jq '.|length')
         declare -A map
         map=(["金晟"]="jinsheng200303" ["崔志坚"]="czj69233" ["邱锋"]="qiuf12")
@@ -53,9 +53,7 @@ jobs:
         # 创建issue
         for ((index=0;index<$length;index++));do
           sleep 3
-          type=$(echo $list | jq -r ".[$index].type")
           appname=$(echo $list | jq -r ".[$index].appname")
-          distribution=$(echo $list | jq -r ".[$index].distribution")
           platform=$(echo $list | jq -r ".[$index].platform")
           os=$(echo $list | jq -r ".[$index].os")
           assignee=${map[$(echo $list | jq -r ".[$index].assignees")]}
@@ -64,9 +62,9 @@ jobs:
 
           # 根据type的值来决定标签类型
           if [[ $type == "websoft9" ]]; then
-              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
+              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md  --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
           else
-              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md --label "$distribution,$type" --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
+              issue_number=$(gh issue create --assignee $assignee --title "$updateornew SKU $appname on $platform on $os" --body-file template.md  --milestone "$stone" --project "商品生产发布" | awk -F "/" '{print $NF}')
           fi
           echo $issue_number
         done
