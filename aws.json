@@ -1,0 +1,33 @@
+{  
+   "milestone": "20250220",
+   "task":[
+     {
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
+      "os": ["Ubuntu22.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
+      "os": ["Debian12"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
+      "os": ["Redhat9"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "appname": "Desktop-gnome",
+      "platform": ["AWS"],
+      "os": ["buntu22.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     }    
+  ]
+}
