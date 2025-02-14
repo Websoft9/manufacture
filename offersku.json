@@ -3,112 +3,28 @@
    "task":[
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["Ubuntu22.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["Debian12"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Oracle Linux9.4"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
+      "platform": ["AWS"],
+      "os": ["Redhat9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "Desktop-gnome",
-      "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-gnome",
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-gnome",
-      "platform": ["Azure"],
-      "os": ["Oracle Linux9.4"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-gnome",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-kde",
-      "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-kde",
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-kde",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-xfce",
-      "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-xfce",
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-xfce",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-mate",
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-mate",
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["buntu22.04"],
       "assignees": "邱锋",
       "updateornew": "update"
