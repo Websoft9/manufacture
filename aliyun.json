@@ -53,6 +53,13 @@
      {
       "appname": "desktop-GNOME",
       "platform": ["阿里云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
+     {
+      "appname": "desktop-GNOME",
+      "platform": ["阿里云"],
       "os": ["CentOS Stream 9"],
       "assignees": "邱锋",
       "updateornew": "update"
