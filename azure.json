@@ -109,7 +109,7 @@
      {
       "appname": "Desktop-mate",
       "platform": ["Azure"],
-      "os": ["buntu22.04"],
+      "os": ["Ubuntu22.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      }    
