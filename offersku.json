@@ -5,42 +5,42 @@
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Ubuntu24.04"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Alibaba Cloud linux"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Debian"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Rocky Linux"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["CentOS Stream9"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["AlmaLinux"],
-      "assignees": "",
+      "assignees": "邱锋",
       "updateornew": "update"
      }
   ]
