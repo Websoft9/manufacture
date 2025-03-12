@@ -1,46 +1,46 @@
 {  
-   "milestone": "20250307",
+   "milestone": "20250315",
    "task":[
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Ubuntu24.04"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Alibaba Cloud linux"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Debian"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["Rocky Linux"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["CentOS Stream9"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像（适用websoft9,app,solution）",
       "platform": ["阿里云"],
       "os": ["AlmaLinux"],
-      "assignees": "邱锋",
+      "assignees": "",
       "updateornew": "update"
      }
   ]
