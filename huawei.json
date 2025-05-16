@@ -1,1 +1,13 @@
+{  
+   "milestone": "20250520",
+   "task":[
+     {
+      "appname": "自适应镜像",
+      "platform": ["华为云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     } 
+  ]
+}
 
