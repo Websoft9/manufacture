@@ -123,7 +123,7 @@
      {
       "appname": "bt",
       "platform": ["阿里云"],
-      "os": ["Ubuntu24.04"],
+      "os": ["Ubuntu24.04","windows server 2025"],
       "assignees": "邱锋",
       "updateornew": "update"
      }
