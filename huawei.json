@@ -11,7 +11,7 @@
      {
       "appname": "desktop-GNOME",
       "platform": ["华为云"],
-      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9","Centos7.9"],
+      "os": ["OracleLinux9","OracleLinux8","OracleLinux7","AlmaLinux9.0","RockyLinux9.3","CentosStream9","Centos7.9"],
       "assignees": "邱锋",
       "updateornew": "update"
      }
