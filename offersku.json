@@ -1,94 +1,17 @@
 {  
-   "milestone": "20250516",
+   "milestone": "20250615",
    "task":[
      {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Alibaba Cloud linux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Debian"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Rocky Linux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["CentOS Stream9"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["AlmaLinux"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
       "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Ubuntu24.04"],
+      "platform": ["华为云"],
+      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Redhat9"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Debian12"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Oracle Linux9.4"],
-      "assignees": "邱锋",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
+      "appname": "desktop-GNOME",
+      "platform": ["华为云"],
+      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9","Centos7.9"],
       "assignees": "邱锋",
       "updateornew": "update"
      }
