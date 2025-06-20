@@ -21,6 +21,6 @@
       "os": ["Debian12","Oracle Linux9.4","AlmaLinux"],
       "assignees": "邱锋",
       "updateornew": "update"
-     },
+     }
   ]
 }
