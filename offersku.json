@@ -1,19 +1,26 @@
 {  
-   "milestone": "20250615",
+   "milestone": "20250625",
    "task":[
      {
       "appname": "自适应镜像",
       "platform": ["华为云"],
-      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9"],
+      "os": ["OracleLinux9"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
      {
-      "appname": "desktop-GNOME",
+      "appname": "docker",
       "platform": ["华为云"],
-      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9","Centos7.9"],
+      "os": ["Centos7.9"],
       "assignees": "邱锋",
       "updateornew": "update"
-     }
+     },
+     {
+      "appname": "自适应镜像",
+      "platform": ["Azure"],
+      "os": ["Debian12","Oracle Linux9.4","AlmaLinux"],
+      "assignees": "邱锋",
+      "updateornew": "update"
+     },
   ]
 }
