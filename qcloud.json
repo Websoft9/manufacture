@@ -9,14 +9,14 @@
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 入门版",
+      "appname": "websoft9托管平台 标准版",
       "platform": ["腾讯云"],
       "os": ["Ubuntu24.04"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 入门版",
+      "appname": "websoft9托管平台 企业版",
       "platform": ["腾讯云"],
       "os": ["Ubuntu24.04"],
       "assignees": "杨顺鸿",
