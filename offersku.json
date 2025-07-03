@@ -1,26 +1,26 @@
 {  
-   "milestone": "20250625",
+   "milestone": "20250704",
    "task":[
      {
-      "appname": "自适应镜像",
-      "platform": ["华为云"],
-      "os": ["OracleLinux9"],
-      "assignees": "邱锋",
+      "appname": "websoft9托管平台 入门版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "docker",
-      "platform": ["华为云"],
-      "os": ["Centos7.9"],
-      "assignees": "邱锋",
+      "appname": "websoft9托管平台 标准版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Debian12","Oracle Linux9.4","AlmaLinux"],
-      "assignees": "邱锋",
+      "appname": "websoft9托管平台 企业版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
       "updateornew": "update"
      }
-  ]
+    ]
 }
