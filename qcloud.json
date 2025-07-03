@@ -1,1 +1,26 @@
-
+{  
+   "milestone": "20250704",
+   "task":[
+     {
+      "appname": "websoft9托管平台 入门版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     },
+     {
+      "appname": "websoft9托管平台 入门版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     },
+     {
+      "appname": "websoft9托管平台 入门版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     }
+    ]
+}
