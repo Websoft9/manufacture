@@ -3,31 +3,24 @@
    "task":[
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["Ubuntu24.04"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
+      "platform": ["AWS"],
       "os": ["Debian12"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
       "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["Oracle Linux9.5"],
+      "platform": ["AWS"],
+      "os": ["Redhat9"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["Azure"],
-      "os": ["AlmaLinux"],
-      "assignees": "杨顺鸿",
-      "updateornew": "update"
-     }
-   ]
+     }    
+  ]
 }
