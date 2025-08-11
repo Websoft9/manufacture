@@ -4,7 +4,7 @@
      {
       "appname": "自适应镜像",
       "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
+      "os": ["Ubuntu24.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
@@ -32,7 +32,7 @@
      {
       "appname": "Desktop-gnome",
       "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
+      "os": ["Ubuntu24.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
@@ -81,7 +81,7 @@
      {
       "appname": "Desktop-xfce",
       "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
+      "os": ["Ubuntu24.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
@@ -109,7 +109,7 @@
      {
       "appname": "Desktop-mate",
       "platform": ["Azure"],
-      "os": ["Ubuntu22.04"],
+      "os": ["Ubuntu24.04"],
       "assignees": "邱锋",
       "updateornew": "update"
      }    
