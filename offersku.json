@@ -2,25 +2,32 @@
    "milestone": "20250815",
    "task":[
      {
-      "appname": "websoft9托管平台 入门版",
-      "platform": ["腾讯云"],
+      "appname": "自适应镜像",
+      "platform": ["Azure"],
       "os": ["Ubuntu24.04"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 标准版",
-      "platform": ["腾讯云"],
-      "os": ["Ubuntu24.04"],
+      "appname": "自适应镜像",
+      "platform": ["Azure"],
+      "os": ["Debian12"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 企业版",
-      "platform": ["腾讯云"],
-      "os": ["Ubuntu24.04"],
+      "appname": "自适应镜像",
+      "platform": ["Azure"],
+      "os": ["Oracle Linux9.5"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     },
+     {
+      "appname": "自适应镜像",
+      "platform": ["Azure"],
+      "os": ["AlmaLinux"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      }
-    ]
+   ]
 }
