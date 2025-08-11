@@ -1,26 +1,47 @@
 {  
-   "milestone": "20250704",
+   "milestone": "20250815",
    "task":[
      {
-      "appname": "websoft9托管平台 入门版",
-      "platform": ["腾讯云"],
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
       "os": ["Ubuntu24.04"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 标准版",
-      "platform": ["腾讯云"],
-      "os": ["Ubuntu24.04"],
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
+      "os": ["Alibaba Cloud linux"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
      },
      {
-      "appname": "websoft9托管平台 企业版",
-      "platform": ["腾讯云"],
-      "os": ["Ubuntu24.04"],
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
+      "os": ["Debian"],
       "assignees": "杨顺鸿",
       "updateornew": "update"
-     }
-    ]
+     },
+     {
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
+      "os": ["Rocky Linux"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     },
+     {
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
+      "os": ["CentOS Stream9"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     },
+     {
+      "appname": "自适应镜像（适用websoft9,app,solution）",
+      "platform": ["阿里云"],
+      "os": ["AlmaLinux"],
+      "assignees": "杨顺鸿",
+      "updateornew": "update"
+     }  
+   ]
 }
