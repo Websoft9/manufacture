@@ -18,7 +18,7 @@
      {
       "appname": "自适应镜像",
       "platform": ["Azure"],
-      "os": ["Oracle Linux9.4"],
+      "os": ["Oracle Linux9.5"],
       "assignees": "邱锋",
       "updateornew": "update"
      },
