@@ -1,54 +1,33 @@
 {  
-   "milestone": "20250930",
+   "milestone": "20251017",
    "task":[
      {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
       "os": ["Ubuntu24.04"],
-      "assignees": "黄文乐",
+      "assignees": "申悦",
       "updateornew": "update"
      },
      {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Alibaba Cloud linux"],
-      "assignees": "黄文乐",
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
+      "os": ["Debian12"],
+      "assignees": "申悦",
       "updateornew": "update"
      },
      {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Debian"],
-      "assignees": "黄文乐",
+      "appname": "自适应镜像",
+      "platform": ["AWS"],
+      "os": ["Redhat9"],
+      "assignees": "申悦",
       "updateornew": "update"
      },
      {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["Rocky Linux"],
-      "assignees": "黄文乐",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["CentOS Stream9"],
-      "assignees": "黄文乐",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像（适用websoft9,app,solution）",
-      "platform": ["阿里云"],
-      "os": ["AlmaLinux"],
-      "assignees": "黄文乐",
-      "updateornew": "update"
-     },
-     {
-      "appname": "wphosting",
-      "platform": ["阿里云"],
+      "appname": "Desktop-gnome",
+      "platform": ["AWS"],
       "os": ["Ubuntu24.04"],
-      "assignees": "黄文乐",
+      "assignees": "申悦",
       "updateornew": "update"
-     }
+     }    
   ]
 }
