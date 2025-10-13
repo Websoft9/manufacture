@@ -48,7 +48,7 @@ jobs:
         list=$(jq "[.task[] | {appname:.appname,platform:.platform[],os:.os[],assignees:.assignees,updateornew:.updateornew}]" offersku.json)
         length=$(echo $list | jq '.|length')
         declare -A map
-        map=(["金晟"]="jinsheng200303" ["杨顺鸿"]="yayahonghong" ["黄文乐"]="obboda")
+        map=(["申悦"]="SY882" ["杨顺鸿"]="yayahonghong" ["黄文乐"]="obboda")
         
         # 创建issue
         for ((index=0;index<$length;index++));do
