@@ -3,31 +3,10 @@
    "task":[
      {
       "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Ubuntu24.04"],
+      "platform": ["华为云"],
+      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9","OracleLinux9"],
       "assignees": "申悦",
       "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Debian12"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "自适应镜像",
-      "platform": ["AWS"],
-      "os": ["Redhat9"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Desktop-gnome",
-      "platform": ["AWS"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     }    
+     }
   ]
 }
