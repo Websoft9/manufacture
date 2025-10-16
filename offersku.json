@@ -2,11 +2,25 @@
    "milestone": "20251017",
    "task":[
      {
-      "appname": "自适应镜像",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04","Debian12","AlmaLinux9.0","RockyLinux9.3","CentosStream9","OracleLinux9"],
+      "appname": "websoft9托管平台 入门版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "申悦",
+      "updateornew": "update"
+     },
+     {
+      "appname": "websoft9托管平台 标准版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
+      "assignees": "申悦",
+      "updateornew": "update"
+     },
+     {
+      "appname": "websoft9托管平台 企业版",
+      "platform": ["腾讯云"],
+      "os": ["Ubuntu24.04"],
       "assignees": "申悦",
       "updateornew": "update"
      }
-  ]
+    ]
 }
