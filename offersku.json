@@ -2,74 +2,11 @@
    "milestone": "20251124",
    "task":[
      {
-      "appname": "Moodle",
+      "appname": "docker",
       "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
+      "os": ["OracleLinux9.4"],
       "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Gitlab",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "portainer",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Jenkins",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "RabbitMQ",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "NextCloud",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "ONLYOFFICE Docs",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "Dify",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "n8n",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
-     },
-     {
-      "appname": "milvus",
-      "platform": ["华为云"],
-      "os": ["Ubuntu24.04"],
-      "assignees": "申悦",
-      "updateornew": "update"
+      "updateornew": "new"
      }
   ]
 }
