@@ -2,9 +2,9 @@
    "milestone": "20251124",
    "task":[
      {
-      "appname": "docker",
-      "platform": ["华为云"],
-      "os": ["OracleLinux9.4"],
+      "appname": "自适应镜像",
+      "platform": ["azure","Google cloud"],
+      "os": ["ubuntu24.04"],
       "assignees": "申悦",
       "updateornew": "new"
      }
