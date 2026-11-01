@@ -1,0 +1,1 @@
+Read the root `AGENTS.md` first, then consult the relevant files in `specs/`. Reusable domain workflows live in `skills/`; follow their data-source, privacy, and issue-creation requirements. Do not change existing cloud-platform JSON schemas or GitHub Actions behavior without a task-specific reason.
