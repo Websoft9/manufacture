@@ -16,7 +16,7 @@ SKILLS = {
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
     selected = os.environ.get("SELECTED_PLATFORM", "").strip().lower() or "all"
     if event_name == "schedule":

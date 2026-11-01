@@ -14,3 +14,7 @@
 - Repository-specific skills: [`skills/`](skills/README.md)
 - VS Code MCP configuration: `.vscode/mcp.json` (GitHub MCP uses GitHub OAuth; Playwright MCP requires Node.js/npx)
 - Scheduled and manually triggered product checks: [Marketplace Product Freshness workflow](.github/workflows/product-freshness.yml)
+
+## Developer Commands
+
+Run `make help` to list the available local commands, including `make opencode`, `make opencode-clear`, and `make branch-update`.
