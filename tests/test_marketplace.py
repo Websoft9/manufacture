@@ -16,19 +16,23 @@ class ConfigTests(unittest.TestCase):
         config = app_list.CONFIG
         self.assertTrue(config["sources"]["offer"].startswith("https://"))
         self.assertTrue(config["sources"]["catalog"].startswith("https://"))
-        self.assertEqual(
-            tuple(item["key"] for item in config["platforms"]),
-            app_list.PLATFORMS,
+
+        product_platforms = tuple(
+            item["key"] for item in config["platforms"] if item.get("urlTemplate")
         )
+        self.assertEqual(product_platforms, app_list.PLATFORMS)
+
+        all_platforms = {item["key"] for item in config["platforms"]}
         for platform in config["platforms"]:
-            self.assertIn("{code}", platform["urlTemplate"])
-            self.assertTrue(platform.get("stores"), platform["key"])
-            for store in platform["stores"]:
+            if platform.get("urlTemplate"):
+                self.assertIn("{code}", platform["urlTemplate"])
+            for store in platform.get("stores", []):
                 self.assertTrue(store["url"].startswith("https://"), store["url"])
+
         for source, route in config["routing"].items():
-            self.assertIn(route["default"], app_list.PLATFORMS, source)
+            self.assertIn(route["default"], all_platforms, source)
             for rule in route.get("rules", []):
-                self.assertIn(rule["platform"], app_list.PLATFORMS, source)
+                self.assertIn(rule["platform"], all_platforms, source)
 
 
 class LinkTests(unittest.TestCase):
@@ -66,7 +70,7 @@ class LinkTests(unittest.TestCase):
         self.assertEqual(
             app_list.product_url("azure", "vmlabinc1613642184700.moodle"),
             (
-                "azure",
+                "azure-vmlab",
                 "https://azuremarketplace.microsoft.com/en-us/marketplace/apps/vmlabinc1613642184700.moodle",
             ),
         )

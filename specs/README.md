@@ -6,6 +6,7 @@
 - AI collaboration rules are in the root `AGENTS.md`; reusable workflows are in `skills/`.
 - Reusable automation scripts live in the root `ci/` directory.
 - Business commands use the `mk` CLI in `cli/`, separate from development `make` targets; `make cli` creates `.venv`, installs the CLI, and enters the `mk` command shell.
+- To list marketplace product versions from cloud APIs, see [`marketplace-versions.md`](marketplace-versions.md). The initial implementation supports Aliyun China.
 - Shared marketplace sources, platform URL templates, Websoft9 store homepages, and code routing live in `config/marketplace.json`; both `mk` and the Astro site read this file.
 - The static Marketplace dashboard lives in `site/` (Astro): `/` is the overview and `/apps` is the application list; both read the marketplace data sources at build time.
 - To query Aliyun products and check application image versions, use [`aliyun-product-freshness`](../skills/aliyun-product-freshness/SKILL.md).

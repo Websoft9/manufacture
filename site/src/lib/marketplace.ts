@@ -7,6 +7,7 @@ const PLATFORM_KEYS = [
   "huaweiyun",
   "huaweicloud",
   "azure",
+  "azure-vmlab",
   "aws",
 ] as const;
 
@@ -19,20 +20,26 @@ export interface StoreConfig {
 }
 
 interface PlatformConfig {
-  key: PlatformKey;
+  key: string;
   label: string;
   description: string;
+  urlTemplate?: string;
+  stores?: StoreConfig[];
+  overviewKey?: string;
+}
+
+interface ProductPlatformConfig extends PlatformConfig {
+  key: PlatformKey;
   urlTemplate: string;
-  stores: StoreConfig[];
 }
 
 interface RouteRule {
   prefix: string;
-  platform: PlatformKey;
+  platform: string;
 }
 
 interface PlatformRoute {
-  default: PlatformKey;
+  default: string;
   rules?: RouteRule[];
 }
 
@@ -61,7 +68,7 @@ export interface AppRow {
 }
 
 export interface PlatformCount {
-  key: PlatformKey;
+  key: string;
   label: string;
   description: string;
   stores: StoreConfig[];
@@ -104,11 +111,18 @@ function findConfig(start: string): string {
 const CONFIG_PATH = process.env.MK_CONFIG_PATH ?? findConfig(process.cwd());
 const CONFIG = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as MarketplaceConfig;
 
+function isProductPlatform(platform: PlatformConfig): platform is ProductPlatformConfig {
+  return (
+    typeof platform.urlTemplate === "string" &&
+    (PLATFORM_KEYS as readonly string[]).includes(platform.key)
+  );
+}
+
 for (const platform of CONFIG.platforms) {
-  if (!PLATFORM_KEYS.includes(platform.key)) {
-    throw new Error(`Unknown marketplace platform: ${platform.key}`);
+  if (platform.urlTemplate && !isProductPlatform(platform)) {
+    throw new Error(`Unknown product platform: ${platform.key}`);
   }
-  if (!platform.urlTemplate.includes("{code}")) {
+  if (platform.urlTemplate && !platform.urlTemplate.includes("{code}")) {
     throw new Error(`Platform ${platform.key} URL template must include {code}`);
   }
   for (const store of platform.stores ?? []) {
@@ -118,12 +132,13 @@ for (const platform of CONFIG.platforms) {
   }
 }
 
+const ALL_PLATFORM_KEYS = new Set(CONFIG.platforms.map((platform) => platform.key));
 for (const [source, route] of Object.entries(CONFIG.routing)) {
-  if (!PLATFORM_KEYS.includes(route.default)) {
+  if (!ALL_PLATFORM_KEYS.has(route.default)) {
     throw new Error(`Unknown default platform for ${source}: ${route.default}`);
   }
   for (const rule of route.rules ?? []) {
-    if (!PLATFORM_KEYS.includes(rule.platform)) {
+    if (!ALL_PLATFORM_KEYS.has(rule.platform)) {
       throw new Error(`Unknown routed platform for ${source}: ${rule.platform}`);
     }
   }
@@ -136,10 +151,19 @@ const ENV = (
 export const OFFER_URL = ENV?.MK_OFFER_URL ?? CONFIG.sources.offer;
 export const CATALOG_URL = ENV?.MK_CATALOG_URL ?? CONFIG.sources.catalog;
 
-export const PLATFORMS = CONFIG.platforms;
+const PRODUCT_PLATFORMS = CONFIG.platforms.filter(isProductPlatform);
+const OVERVIEW_PLATFORMS = CONFIG.platforms.filter(
+  (platform) => (platform.overviewKey ?? platform.key) === platform.key,
+);
+
+export const PLATFORMS = PRODUCT_PLATFORMS;
 const PLATFORM_URL_TEMPLATES = Object.fromEntries(
-  PLATFORMS.map((platform) => [platform.key, platform.urlTemplate]),
+  PRODUCT_PLATFORMS.map((platform) => [platform.key, platform.urlTemplate]),
 ) as Record<PlatformKey, string>;
+
+function isProductPlatformKey(value: string): value is PlatformKey {
+  return (PLATFORM_KEYS as readonly string[]).includes(value);
+}
 
 function routePlatform(sourceKey: string, code: string): PlatformKey | undefined {
   const route = CONFIG.routing[sourceKey.toLowerCase()];
@@ -148,7 +172,8 @@ function routePlatform(sourceKey: string, code: string): PlatformKey | undefined
   const rule = (route.rules ?? []).find((candidate) =>
     code.toLowerCase().startsWith(candidate.prefix.toLowerCase()),
   );
-  return rule?.platform ?? route.default;
+  const target = rule?.platform ?? route.default;
+  return isProductPlatformKey(target) ? target : undefined;
 }
 
 function productLink(platformKey: string, code: string): ProductLink | undefined {
@@ -162,7 +187,7 @@ function productLink(platformKey: string, code: string): ProductLink | undefined
 
 function emptyLinks(): Record<PlatformKey, ProductLink[]> {
   const links = {} as Record<PlatformKey, ProductLink[]>;
-  for (const platform of PLATFORMS) {
+  for (const platform of PRODUCT_PLATFORMS) {
     links[platform.key] = [];
   }
   return links;
@@ -232,10 +257,27 @@ export function calculateStats(rows: AppRow[]): MarketplaceStats {
     listed: listed.length,
     unlisted: unlisted.length,
     outside: outside.length,
-    platformCounts: PLATFORMS.map((platform) => ({
-      ...platform,
-      count: listed.filter((row) => row.links[platform.key].length > 0).length,
-    })),
+    platformCounts: OVERVIEW_PLATFORMS.map((platform) => {
+      const groupedKeys = CONFIG.platforms
+        .filter(
+          (candidate) =>
+            (candidate.overviewKey ?? candidate.key) === platform.key,
+        )
+        .map((candidate) => candidate.key);
+
+      return {
+        key: platform.key,
+        label: platform.label,
+        description: platform.description,
+        stores: platform.stores ?? [],
+        count: listed.filter((row) =>
+          groupedKeys.some(
+            (key) =>
+              isProductPlatformKey(key) && row.links[key].length > 0,
+          ),
+        ).length,
+      };
+    }),
   };
 }
 

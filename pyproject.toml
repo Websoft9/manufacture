@@ -9,6 +9,12 @@ description = "Websoft9 marketplace business CLI"
 requires-python = ">=3.10"
 dependencies = ["click>=8.1"]
 
+[project.optional-dependencies]
+aliyun = [
+    "aliyun-python-sdk-core>=2.13.0",
+    "aliyun-python-sdk-market>=2.0.24",
+]
+
 [project.scripts]
 mk = "cli.cli:main"
 

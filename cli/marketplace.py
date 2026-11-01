@@ -33,13 +33,18 @@ SOURCES = CONFIG["sources"]
 OFFER_URL = os.environ.get("MK_OFFER_URL", SOURCES["offer"])
 CATALOG_URL = os.environ.get("MK_CATALOG_URL", SOURCES["catalog"])
 
-PLATFORM_CONFIGS = tuple(CONFIG["platforms"])
+ALL_PLATFORM_CONFIGS = tuple(CONFIG["platforms"])
+PLATFORM_CONFIGS = tuple(
+    item for item in ALL_PLATFORM_CONFIGS if item.get("urlTemplate")
+)
 PLATFORMS = tuple(str(item["key"]) for item in PLATFORM_CONFIGS)
 PLATFORM_TITLES = {
     str(item["key"]): str(item["label"]) for item in PLATFORM_CONFIGS
 }
 PLATFORM_URL_TEMPLATES = {
-    str(item["key"]): str(item["urlTemplate"]) for item in PLATFORM_CONFIGS
+    str(item["key"]): str(item["urlTemplate"])
+    for item in PLATFORM_CONFIGS
+    if item.get("urlTemplate")
 }
 ROUTING = CONFIG["routing"]
 
