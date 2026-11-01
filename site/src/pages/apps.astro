@@ -1,0 +1,227 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import ProductActions from "../components/ProductActions.astro";
+import {
+  PLATFORMS,
+  loadMarketplaceData,
+  rowStatus,
+} from "../lib/marketplace";
+
+const { rows, generatedAt } = await loadMarketplaceData();
+const statusLabels = {
+  listed: "已上架",
+  unlisted: "未上架",
+  outside: "目录外",
+} as const;
+const generatedLabel = new Intl.DateTimeFormat("zh-CN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
+}).format(generatedAt);
+---
+
+<DashboardLayout
+  title="应用列表 | Websoft9 Marketplace"
+  description="Websoft9 Marketplace 应用目录、上架状态和各云平台商品链接。"
+>
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Applications / List</span>
+      <h1>应用列表</h1>
+      <p class="lede">
+        查看每个应用在各 Marketplace 的上架状态。打开商品链接，或复制商品 code 用于生产与排查。
+      </p>
+    </div>
+    <div class="header-meta">
+      <span class="build-pill">构建时间 {generatedLabel}</span>
+      <a
+        class="button"
+        href="https://github.com/Websoft9/manufacture"
+        target="_blank"
+        rel="noreferrer"
+      >
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <section class="panel table-panel">
+    <div class="table-toolbar">
+      <div>
+        <h2>应用列表</h2>
+        <p class="table-summary">
+          显示 <strong id="visible-count">{rows.length}</strong> / {rows.length} 个应用
+        </p>
+      </div>
+      <div class="filters">
+        <label class="field search-field">
+          <span>搜索</span>
+          <input
+            id="app-search"
+            type="search"
+            placeholder="应用名称、key 或商品 code"
+            autocomplete="off"
+          />
+        </label>
+        <label class="field">
+          <span>状态</span>
+          <select id="status-filter">
+            <option value="all">全部状态</option>
+            <option value="listed">已上架</option>
+            <option value="unlisted">未上架</option>
+            <option value="outside">目录外</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>平台</span>
+          <select id="platform-filter">
+            <option value="all">全部平台</option>
+            {PLATFORMS.map((platform) => (
+              <option value={platform.key}>{platform.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">应用</th>
+            <th scope="col">状态</th>
+            {PLATFORMS.map((platform) => (
+              <th scope="col">{platform.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const status = rowStatus(row);
+            const platforms = PLATFORMS.filter(
+              (platform) => row.links[platform.key].length > 0,
+            )
+              .map((platform) => platform.key)
+              .join(",");
+            const searchText = [
+              row.name,
+              row.key,
+              ...Object.values(row.links)
+                .flat()
+                .map((link) => link.code),
+            ]
+              .join(" ")
+              .toLowerCase();
+            return (
+              <tr
+                data-app-row
+                data-status={status}
+                data-platforms={platforms}
+                data-search={searchText}
+              >
+                <td class="app-cell">
+                  <span class="app-name">{row.name}</span>
+                  <span class="app-key">{row.key}</span>
+                </td>
+                <td>
+                  <span class:list={["status", `status-${status}`]}>
+                    {statusLabels[status]}
+                  </span>
+                </td>
+                {PLATFORMS.map((platform) => (
+                  <td>
+                    <ProductActions
+                      links={row.links[platform.key]}
+                      platformLabel={platform.label}
+                    />
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <div id="empty-state" class="empty-state" hidden>
+      没有匹配的应用，请调整搜索或筛选条件。
+    </div>
+  </section>
+</DashboardLayout>
+
+<script>
+  const search = document.getElementById("app-search") as HTMLInputElement | null;
+  const statusFilter = document.getElementById("status-filter") as HTMLSelectElement | null;
+  const platformFilter = document.getElementById(
+    "platform-filter",
+  ) as HTMLSelectElement | null;
+  const visibleCount = document.getElementById("visible-count");
+  const emptyState = document.getElementById("empty-state");
+  const tableRows = Array.from(
+    document.querySelectorAll<HTMLTableRowElement>("tr[data-app-row]"),
+  );
+
+  function applyFilters() {
+    if (!search || !statusFilter || !platformFilter) return;
+
+    const term = search.value.trim().toLowerCase();
+    const status = statusFilter.value;
+    const platform = platformFilter.value;
+    let visible = 0;
+
+    for (const row of tableRows) {
+      const platforms = (row.dataset.platforms || "").split(",");
+      const matchesSearch =
+        term.length === 0 || (row.dataset.search || "").includes(term);
+      const matchesStatus = status === "all" || row.dataset.status === status;
+      const matchesPlatform =
+        platform === "all" || platforms.includes(platform);
+      const show = matchesSearch && matchesStatus && matchesPlatform;
+      row.hidden = !show;
+      if (show) visible += 1;
+    }
+
+    if (visibleCount) visibleCount.textContent = String(visible);
+    if (emptyState) emptyState.hidden = visible !== 0;
+  }
+
+  search?.addEventListener("input", applyFilters);
+  statusFilter?.addEventListener("change", applyFilters);
+  platformFilter?.addEventListener("change", applyFilters);
+
+  async function copyText(text: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+
+  document.addEventListener("click", async (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>("[data-copy]");
+    const code = button?.dataset.copy;
+    if (!button || !code) return;
+
+    const original = button.textContent;
+    try {
+      await copyText(code);
+      button.textContent = "已复制";
+      button.classList.add("copied");
+    } catch {
+      button.textContent = "复制失败";
+    }
+    window.setTimeout(() => {
+      button.textContent = original;
+      button.classList.remove("copied");
+    }, 1200);
+  });
+</script>

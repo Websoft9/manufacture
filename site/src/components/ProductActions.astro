@@ -1,0 +1,44 @@
+---
+import type { ProductLink } from "../lib/marketplace";
+
+interface Props {
+  links: ProductLink[];
+  platformLabel: string;
+}
+
+const { links, platformLabel } = Astro.props;
+const first = links[0];
+const codes = links.map((link) => link.code);
+const copyTitle =
+  links.length > 1
+    ? `复制全部 ${links.length} 个 code：${codes.join(", ")}`
+    : `复制 code：${codes[0]}`;
+---
+
+{
+  first ? (
+    <span class="platform-cell">
+      <a
+        class="platform-check"
+        href={first.url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`打开 ${platformLabel} 商品`}
+        title={`打开 ${platformLabel} 商品；悬停后可复制 code`}
+      >
+        ✔
+      </a>
+      <button
+        class="platform-copy"
+        type="button"
+        data-copy={codes.join("\n")}
+        aria-label={`复制 ${platformLabel} 商品 code`}
+        title={copyTitle}
+      >
+        复制
+      </button>
+    </span>
+  ) : (
+    <span class="empty-cell">—</span>
+  )
+}

@@ -1,0 +1,114 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import StatCard from "../components/StatCard.astro";
+import StoreLinks from "../components/StoreLinks.astro";
+import {
+  CATALOG_URL,
+  OFFER_URL,
+  loadMarketplaceData,
+} from "../lib/marketplace";
+
+const { stats, generatedAt } = await loadMarketplaceData();
+const listingRate = stats.catalog
+  ? Math.round((stats.listed / stats.catalog) * 100)
+  : 0;
+const appsHref = `${import.meta.env.BASE_URL.replace(/\/+$/, "")}/apps`;
+const generatedLabel = new Intl.DateTimeFormat("zh-CN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
+}).format(generatedAt);
+---
+
+<DashboardLayout
+  title="市场总览 | Websoft9 Marketplace"
+  description="Websoft9 Marketplace 应用上架概况、平台覆盖和数据源状态。"
+>
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Overview / Marketplace</span>
+      <h1>Marketplace 总览</h1>
+      <p class="lede">
+        汇总应用目录与各云平台 Marketplace 商品数据。需要查看具体应用时，再进入应用列表。
+      </p>
+    </div>
+    <div class="header-meta">
+      <span class="build-pill">构建时间 {generatedLabel}</span>
+      <a class="button" href={appsHref}>查看应用列表</a>
+    </div>
+  </header>
+
+  <section class="stats-grid" aria-label="应用统计">
+    <StatCard label="商品目录应用" value={stats.catalog} hint="product_en.json" tone="blue" />
+    <StatCard label="已上架" value={stats.listed} hint="至少有一个 Marketplace 商品" tone="green" />
+    <StatCard label="未上架" value={stats.unlisted} hint="目录中但暂无商品" tone="amber" />
+    <StatCard label="目录外商品" value={stats.outside} hint="offer.json 中存在但无 Trademark" tone="slate" />
+  </section>
+
+  <section class="insight-grid">
+    <article class="panel coverage-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>平台覆盖</h2>
+          <p>按已上架应用统计各 Marketplace 的覆盖数量。</p>
+        </div>
+        <span class="subtle">上架率 {listingRate}%</span>
+      </div>
+      <div class="coverage-list">
+        {stats.platformCounts.map((platform) => {
+          const percentage = stats.listed
+            ? Math.round((platform.count / stats.listed) * 100)
+            : 0;
+          return (
+            <div class="coverage-row">
+              <div class="coverage-meta">
+                <span>
+                  <strong>{platform.label}</strong>
+                  <StoreLinks stores={platform.stores} />
+                  <small>{platform.description}</small>
+                </span>
+                <span>{platform.count}</span>
+              </div>
+              <div class="bar" aria-hidden="true">
+                <span style={`width: ${percentage}%`}></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+
+    <article class="panel source-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>数据源</h2>
+          <p>构建时直接读取，不在浏览器中发起跨域请求。</p>
+        </div>
+      </div>
+      <div class="source-list">
+        <a class="source-item" href={OFFER_URL} target="_blank" rel="noreferrer">
+          <span class="source-name">offer.json</span>
+          <span class="source-desc">商品编码与云平台映射</span>
+        </a>
+        <a class="source-item" href={CATALOG_URL} target="_blank" rel="noreferrer">
+          <span class="source-name">product_en.json</span>
+          <span class="source-desc">应用目录与 Trademark</span>
+        </a>
+      </div>
+      <p class="source-note">
+        由于数据源未开放 CORS，页面采用 Astro 构建时抓取并生成静态 HTML。
+      </p>
+    </article>
+  </section>
+
+  <section class="panel cta-panel">
+    <div>
+      <span class="eyebrow">Applications</span>
+      <h2>需要查看具体应用？</h2>
+      <p>
+        应用列表包含 {stats.catalog} 个目录应用和 {stats.outside} 个目录外商品，可按状态、平台和关键字筛选。
+      </p>
+    </div>
+    <a class="button primary" href={appsHref}>打开应用列表</a>
+  </section>
+</DashboardLayout>

@@ -1,0 +1,16 @@
+---
+interface Props {
+  label: string;
+  value: number | string;
+  hint?: string;
+  tone?: "blue" | "green" | "amber" | "slate";
+}
+
+const { label, value, hint, tone = "slate" } = Astro.props;
+---
+
+<article class:list={["stat-card", `tone-${tone}`]}>
+  <span class="stat-label">{label}</span>
+  <strong class="stat-value">{value}</strong>
+  {hint && <span class="stat-hint">{hint}</span>}
+</article>
