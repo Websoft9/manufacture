@@ -13,7 +13,7 @@ Check all **published and visible image products** in the Aliyun Marketplace fro
 
 - Product catalog: Aliyun `Market` API version `2015-11-01`, [`DescribeProducts`](https://next.api.aliyun.com/document/Market/2015-11-01/DescribeProducts).
 - Application catalog and versions: [`Websoft9/docker-library`](https://github.com/Websoft9/docker-library). Prefer machine-readable metadata, version manifests, and maintenance documentation in the matching app directory. Check the upstream project's official release information when needed to confirm its latest stable version.
-- Read Aliyun credentials from a secure environment through the Aliyun SDK/OpenAPI client, for example `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`. Use an authenticated GitHub MCP server or `gh` for GitHub operations.
+- Read Aliyun credentials from a secure environment through the Aliyun SDK/OpenAPI client, for example `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`. Also set `ALIBABA_CLOUD_SECURITY_TOKEN` when using temporary STS credentials. Use the workflow's `GITHUB_TOKEN` or `gh` authentication for GitHub operations.
 - Never print or store credentials, signed requests, or full sensitive API responses. Keep only the product fields and public links needed to support the findings.
 
 ## Procedure

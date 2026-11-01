@@ -13,3 +13,4 @@
 - Project overview and conventions: [`specs/`](specs/README.md)
 - Repository-specific skills: [`skills/`](skills/README.md)
 - VS Code MCP configuration: `.vscode/mcp.json` (GitHub MCP uses GitHub OAuth; Playwright MCP requires Node.js/npx)
+- Scheduled and manually triggered product checks: [Marketplace Product Freshness workflow](.github/workflows/product-freshness.yml)
