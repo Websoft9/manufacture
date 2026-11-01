@@ -7,4 +7,9 @@
 - 计划生产：以周为单位进行生产计划制定，然后拆解为生产任务
 - 直接生产：计划外的临时、紧急生产任务
 
+## AI Collaboration
 
+- Repository guidelines and constraints: [`AGENTS.md`](AGENTS.md)
+- Project overview and conventions: [`specs/`](specs/README.md)
+- Repository-specific skills: [`skills/`](skills/README.md)
+- VS Code MCP configuration: `.vscode/mcp.json` (GitHub MCP uses GitHub OAuth; Playwright MCP requires Node.js/npx)
