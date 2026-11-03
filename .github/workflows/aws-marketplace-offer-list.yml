@@ -54,8 +54,52 @@ jobs:
           import os
 
           import boto3
+          from botocore.config import Config
 
-          client = boto3.client("marketplace-catalog", region_name="us-east-1")
+          client = boto3.client(
+              "marketplace-catalog",
+              region_name="us-east-1",
+              config=Config(retries={"mode": "standard", "total_max_attempts": 5}),
+          )
+
+          def cell(value):
+              return str(value or "").replace("|", "\\|").replace("\n", " ")
+
+          def describe_product(entity_id):
+              try:
+                  response = client.describe_entity(
+                      Catalog="AWSMarketplace",
+                      EntityId=entity_id,
+                  )
+              except client.exceptions.AccessDeniedException:
+                  raise SystemExit(
+                      "DescribeEntity permission is required to list versions. "
+                      "Allow aws-marketplace:DescribeEntity on AmiProduct/*."
+                  )
+
+              detail = response.get("DetailsDocument")
+              if not detail:
+                  detail = json.loads(response.get("Details") or "{}")
+
+              versions = detail.get("Versions") or []
+              public_versions = [
+                  version
+                  for version in versions
+                  if any(
+                      option.get("Visibility") == "Public"
+                      for option in (version.get("DeliveryOptions") or [])
+                  )
+              ]
+              candidates = public_versions or versions
+              if not candidates:
+                  return "", response.get("LastModifiedDate", "")
+
+              latest = max(candidates, key=lambda version: version.get("CreationDate") or "")
+              return (
+                  latest.get("VersionTitle") or latest.get("Id") or "",
+                  response.get("LastModifiedDate", ""),
+              )
+
           token = None
           products = []
 
@@ -71,10 +115,14 @@ jobs:
 
               for entity in response.get("EntitySummaryList", []):
                   summary = entity.get("AmiProductSummary") or {}
+                  entity_id = entity.get("EntityId", "")
+                  version, last_modified = describe_product(entity_id)
                   products.append({
-                      "entityId": entity.get("EntityId", ""),
+                      "entityId": entity_id,
                       "title": summary.get("ProductTitle") or entity.get("Name", ""),
                       "visibility": summary.get("Visibility", ""),
+                      "version": version,
+                      "lastModified": last_modified,
                   })
 
               token = response.get("NextToken")
@@ -87,17 +135,23 @@ jobs:
               "",
               f"Found **{len(products)}** product(s) in the seller account.",
               "",
-              "| Catalog Entity ID | Product title | Visibility |",
-              "| --- | --- | --- |",
+              "| Catalog Entity ID | Product title | Visibility | Version | Last updated |",
+              "| --- | --- | --- | --- | --- |",
           ]
           lines.extend(
-              "| {entityId} | {title} | {visibility} |".format(
-                  entityId=product["entityId"].replace("|", "\\|"),
-                  title=product["title"].replace("|", "\\|").replace("\n", " "),
-                  visibility=product["visibility"].replace("|", "\\|"),
+              "| {entityId} | {title} | {visibility} | {version} | {lastModified} |".format(
+                  entityId=cell(product["entityId"]),
+                  title=cell(product["title"]),
+                  visibility=cell(product["visibility"]),
+                  version=cell(product["version"] or "-"),
+                  lastModified=cell(product["lastModified"] or "-"),
               )
               for product in products
           )
+          lines.extend([
+              "",
+              "> Version is the latest public version (or latest version if none is public); Last updated is the product entity's `LastModifiedDate`.",
+          ])
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
               summary_file.write("\n".join(lines) + "\n")
           print(f"Listed {len(products)} AWS Marketplace AMI product(s). See the workflow summary.")
