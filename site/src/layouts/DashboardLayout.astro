@@ -21,7 +21,7 @@ const route =
     ? pathname.slice(basePath.length) || "/"
     : pathname;
 const isOverview = route === "/";
-const isApps = route === "/apps";
+const isApps = route === "/apps" || route.startsWith("/apps/");
 ---
 
 <!doctype html>

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "templateId": "aws-ami-v1",
+  "content": {
+    "ProductTitle": "{name} on AWS - Self-hosted with Websoft9",
+    "ShortDescription": "Deploy self-hosted {name} {edition} on AWS. {valueProposition} {consoleSummary}",
+    "Highlights": [
+      "{valueProposition}",
+      "{consoleSummary}",
+      "{supportSummary}"
+    ],
+    "SupportDescription": "{supportSummary}\nContact: {supportContact}\n{supportScope}"
+  },
+  "longDescriptionSections": [
+    {"heading": "", "text": "{name} {edition} runs on AWS for self-hosted deployment. {valueProposition} {consoleSummary}"},
+    {"heading": "What is included?", "text": "{includedComponents}"},
+    {"heading": "Use cases", "text": "{useCases}"},
+    {"heading": "What you pay for", "text": "{billingSummary}"},
+    {"heading": "Do I need SSH?", "text": "{accessSummary}"},
+    {"heading": "Trademark statement", "text": "{trademarkStatement}"},
+    {"heading": "About {name}", "text": "{summary}"},
+    {"heading": "About Websoft9", "text": "{aboutProvider}"}
+  ]
+}

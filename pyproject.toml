@@ -7,9 +7,10 @@ name = "websoft9-manufacture"
 version = "0.1.0"
 description = "Websoft9 marketplace business CLI"
 requires-python = ">=3.10"
-dependencies = ["click>=8.1"]
+dependencies = ["click>=8.1", "jsonschema>=4.18"]
 
 [project.optional-dependencies]
+aws = ["boto3"]
 aliyun = [
     "aliyun-python-sdk-core>=2.13.0",
     "aliyun-python-sdk-market>=2.0.24",

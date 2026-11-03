@@ -8,6 +8,7 @@ import {
 } from "../lib/marketplace";
 
 const { rows, generatedAt } = await loadMarketplaceData();
+const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
 const statusLabels = {
   listed: "已上架",
   unlisted: "未上架",
@@ -120,7 +121,27 @@ const generatedLabel = new Intl.DateTimeFormat("zh-CN", {
                 data-search={searchText}
               >
                 <td class="app-cell">
-                  <span class="app-name">{row.name}</span>
+                  <span class="app-cell-head">
+                    {row.inCatalog ? (
+                      <a
+                        class="app-name app-link"
+                        href={`${basePath}/apps/${row.key}`}
+                        title={`查看 ${row.name} 详情`}
+                      >
+                        {row.name}
+                      </a>
+                    ) : (
+                      <span class="app-name">{row.name}</span>
+                    )}
+                    {row.inCatalog ? (
+                      <a
+                        class="app-detail-link"
+                        href={`${basePath}/apps/${row.key}`}
+                      >
+                        详情
+                      </a>
+                    ) : null}
+                  </span>
                   <span class="app-key">{row.key}</span>
                 </td>
                 <td>

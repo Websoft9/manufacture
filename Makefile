@@ -16,13 +16,13 @@ help:
 	@printf '\nInside the CLI shell run: mk --help\n\n'
 
 cli:
-	@if [ ! -x "$(CLI_BIN)/python" ] || ! "$(CLI_BIN)/python" -c 'import setuptools, click' >/dev/null 2>&1; then \
+	@if [ ! -x "$(CLI_BIN)/python" ] || ! "$(CLI_BIN)/python" -c 'import setuptools, click, jsonschema' >/dev/null 2>&1; then \
 		printf 'Preparing %s with system Python packages...\n' "$(CLI_VENV)"; \
 		rm -rf "$(CLI_VENV)"; \
 		$(PYTHON) -m venv --system-site-packages "$(CLI_VENV)"; \
 	fi
-	@if ! "$(CLI_BIN)/python" -c 'import setuptools, click' >/dev/null 2>&1; then \
-		printf 'error: setuptools and click are required in %s; install them first\n' "$(PYTHON)" >&2; \
+	@if ! "$(CLI_BIN)/python" -c 'import setuptools, click, jsonschema' >/dev/null 2>&1; then \
+		printf 'error: setuptools, click and jsonschema are required in %s; install them first\n' "$(PYTHON)" >&2; \
 		exit 1; \
 	fi
 	@$(CLI_BIN)/python -m pip install --quiet --disable-pip-version-check --no-index --no-build-isolation --no-deps -e .

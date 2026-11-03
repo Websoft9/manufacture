@@ -1,0 +1,100 @@
+name: AWS Marketplace Offer List
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-marketplace-offer-list
+  cancel-in-progress: false
+
+jobs:
+  list-offers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check AWS role configuration
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          if [[ -z "$AWS_ROLE_ARN" ]]; then
+            echo "::error::Configure the AWS_ROLE_ARN Actions variable and allow this repository to assume the role with GitHub OIDC."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: MarketplaceOfferList-${{ github.run_id }}
+
+      - name: Verify AWS caller identity
+        run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output table
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install AWS SDK
+        run: python -m pip install --disable-pip-version-check boto3
+
+      - name: List seller AMI products
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          import boto3
+
+          client = boto3.client("marketplace-catalog", region_name="us-east-1")
+          token = None
+          products = []
+
+          while True:
+              request = {
+                  "Catalog": "AWSMarketplace",
+                  "EntityType": "AmiProduct",
+                  "MaxResults": 50,
+              }
+              if token:
+                  request["NextToken"] = token
+              response = client.list_entities(**request)
+
+              for entity in response.get("EntitySummaryList", []):
+                  summary = entity.get("AmiProductSummary") or {}
+                  products.append({
+                      "entityId": entity.get("EntityId", ""),
+                      "title": summary.get("ProductTitle") or entity.get("Name", ""),
+                      "visibility": summary.get("Visibility", ""),
+                  })
+
+              token = response.get("NextToken")
+              if not token:
+                  break
+
+          products.sort(key=lambda product: (product["title"].casefold(), product["entityId"]))
+          lines = [
+              "## AWS Marketplace AMI products",
+              "",
+              f"Found **{len(products)}** product(s) in the seller account.",
+              "",
+              "| Catalog Entity ID | Product title | Visibility |",
+              "| --- | --- | --- |",
+          ]
+          lines.extend(
+              "| {entityId} | {title} | {visibility} |".format(
+                  entityId=product["entityId"].replace("|", "\\|"),
+                  title=product["title"].replace("|", "\\|").replace("\n", " "),
+                  visibility=product["visibility"].replace("|", "\\|"),
+              )
+              for product in products
+          )
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
+              summary_file.write("\n".join(lines) + "\n")
+          print(f"Listed {len(products)} AWS Marketplace AMI product(s). See the workflow summary.")
+          PY

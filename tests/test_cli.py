@@ -99,6 +99,15 @@ class ListCommandTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("list", result.output)
 
+    def test_help_command_matches_help_options(self) -> None:
+        outputs = [
+            self.runner.invoke(cli, args).output
+            for args in (["help"], ["-h"], ["--help"])
+        ]
+
+        self.assertEqual(outputs[0], outputs[1])
+        self.assertEqual(outputs[0], outputs[2])
+
 
 class VersionsCommandTests(unittest.TestCase):
     def setUp(self) -> None:
