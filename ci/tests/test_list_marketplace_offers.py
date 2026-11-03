@@ -190,7 +190,14 @@ class FakeAliyunClient:
                     "SupplierName": "长沙网久软件有限公司",
                     "DeliveryWay": "镜像",
                     "ShortDescription": "Moodle 5.2.1 on Ubuntu 24.04",
-                }
+                },
+                {
+                    "Code": "cmjj-hidden",
+                    "Name": "Hidden",
+                    "SupplierName": "长沙网久软件有限公司",
+                    "DeliveryWay": "镜像",
+                    "ShortDescription": "Hidden 1.0 on Ubuntu 24.04",
+                },
             ] + [
                 {
                     "Code": f"other-{index}",
@@ -199,7 +206,7 @@ class FakeAliyunClient:
                     "DeliveryWay": "镜像",
                     "ShortDescription": f"Other {index} 9.9 on Ubuntu 24.04",
                 }
-                for index in range(49)
+                for index in range(48)
             ]
             return json.dumps(
                 {
@@ -211,12 +218,34 @@ class FakeAliyunClient:
         return '{"PageNumber":2,"PageSize":50,"ProductItems":{"ProductItem":[]}}'
 
 
+def aliyun_store_opener(codes):
+    def opener(request, timeout):
+        payload = {
+            "success": True,
+            "result": {
+                "products": [
+                    {
+                        "shop_name": "长沙网久软件有限公司",
+                        "delivery_method": "镜像",
+                        "productcode": code,
+                    }
+                    for code in codes
+                ],
+                "totalPage": 1,
+            },
+        }
+        return io.BytesIO(json.dumps(payload).encode())
+
+    return opener
+
+
 class AliyunProviderTests(unittest.TestCase):
     def test_lists_image_products_for_supplier_and_paginates(self) -> None:
         client = FakeAliyunClient()
         provider = offers.AliyunMarketplaceProvider(
             client=client,
             request_factory=FakeAliyunRequest,
+            store_opener=aliyun_store_opener(["cmjj001"]),
         )
 
         result = provider.list_offers()
@@ -236,6 +265,49 @@ class AliyunProviderTests(unittest.TestCase):
             )
         )
 
+    def test_store_pagination_adds_visible_codes(self) -> None:
+        def opener(request, timeout):
+            page = 1 if "pageIndex=1" in request.full_url else 2
+            codes = ["cmjj001"] if page == 1 else ["cmjj-hidden"]
+            payload = {
+                "success": True,
+                "result": {
+                    "products": [
+                        {
+                            "shop_name": "长沙网久软件有限公司",
+                            "delivery_method": "镜像",
+                            "productcode": code,
+                        }
+                        for code in codes
+                    ],
+                    "totalPage": 2,
+                },
+            }
+            return io.BytesIO(json.dumps(payload).encode())
+
+        provider = offers.AliyunMarketplaceProvider(
+            client=FakeAliyunClient(),
+            request_factory=FakeAliyunRequest,
+            store_opener=opener,
+        )
+
+        result = provider.list_offers()
+
+        self.assertEqual([offer.entity_id for offer in result], ["cmjj001", "cmjj-hidden"])
+
+    def test_store_failure_fails_closed(self) -> None:
+        def failing_opener(request, timeout):
+            raise OSError("network down")
+
+        provider = offers.AliyunMarketplaceProvider(
+            client=FakeAliyunClient(),
+            request_factory=FakeAliyunRequest,
+            store_opener=failing_opener,
+        )
+
+        with self.assertRaisesRegex(offers.MarketplaceError, "front-end visibility"):
+            provider.list_offers()
+
     def test_empty_product_items_is_not_an_error(self) -> None:
         class EmptyClient:
             def do_action_with_exception(self, request):
@@ -244,6 +316,7 @@ class AliyunProviderTests(unittest.TestCase):
         provider = offers.AliyunMarketplaceProvider(
             client=EmptyClient(),
             request_factory=FakeAliyunRequest,
+            store_opener=aliyun_store_opener([]),
         )
 
         self.assertEqual(provider.list_offers(), [])
@@ -252,6 +325,7 @@ class AliyunProviderTests(unittest.TestCase):
         provider = offers.AliyunMarketplaceProvider(
             client=FakeAliyunClient(),
             request_factory=FakeAliyunRequest,
+            store_opener=aliyun_store_opener(["cmjj001"]),
         )
 
         markdown = offers.render_markdown(provider, provider.list_offers())
@@ -261,7 +335,7 @@ class AliyunProviderTests(unittest.TestCase):
             markdown,
         )
         self.assertIn("| cmjj001 | Moodle | 5.2.1 | 镜像 |", markdown)
-        self.assertIn("Only image products", markdown)
+        self.assertIn("Only front-end visible image products", markdown)
         self.assertIn("长沙网久软件有限公司", markdown)
 
     def test_unidentified_version_is_not_guessed(self) -> None:

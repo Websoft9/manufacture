@@ -163,6 +163,9 @@ class AliyunMarketplaceProvider:
     id_label = "Product code"
     supplier = "长沙网久软件有限公司"
     product_type = "MIRROR"
+    store_id = "228399"
+    store_api = "https://market.aliyun.com/api/ajax/product/queryProducts.json"
+    page_size = 50
     columns = (
         ("Product code", "entity_id"),
         ("Product title", "title"),
@@ -170,7 +173,7 @@ class AliyunMarketplaceProvider:
         ("Delivery way", "delivery_way"),
     )
     note = (
-        "Only image products (`productType=MIRROR`) from supplier "
+        "Only front-end visible image products (`productType=MIRROR`) from supplier "
         f"`{supplier}` are listed. The application version is extracted from "
         "`ShortDescription`; `未识别` means no version could be confirmed in the summary."
     )
@@ -180,10 +183,76 @@ class AliyunMarketplaceProvider:
         region: str = "cn-hangzhou",
         client: Any | None = None,
         request_factory: Any | None = None,
+        store_opener: Any | None = None,
     ) -> None:
         self.region = region
         self._client = client
         self._request_factory = request_factory
+        self._store_opener = store_opener or urllib.request.urlopen
+
+    def _fetch_visible_product_codes(self) -> set[str]:
+        codes: set[str] = set()
+        page = 1
+        total_pages = 1
+        while page <= total_pages:
+            query = urllib.parse.urlencode(
+                {
+                    "supplierId": self.store_id,
+                    "pageIndex": page,
+                    "pageSize": self.page_size,
+                }
+            )
+            request = urllib.request.Request(
+                f"{self.store_api}?{query}",
+                headers={
+                    "User-Agent": "Websoft9-marketplace-offer-list/1.0",
+                    "Referer": f"https://market.aliyun.com/store/{self.store_id}/index.html",
+                },
+            )
+            try:
+                with self._store_opener(request, timeout=30) as response:
+                    payload = response.read()
+            except Exception as error:
+                raise MarketplaceError(
+                    "Aliyun Marketplace store query failed "
+                    f"({type(error).__name__}); cannot verify front-end visibility"
+                ) from None
+
+            try:
+                parsed = json.loads(payload)
+            except (TypeError, ValueError, UnicodeDecodeError):
+                raise MarketplaceError(
+                    "Aliyun Marketplace store query returned invalid JSON"
+                ) from None
+            if not isinstance(parsed, dict) or parsed.get("success") is not True:
+                raise MarketplaceError("Aliyun Marketplace store query failed")
+            result = parsed.get("result")
+            if not isinstance(result, dict):
+                raise MarketplaceError("Aliyun Marketplace store query is missing result data")
+            products = result.get("products")
+            if not isinstance(products, list):
+                raise MarketplaceError("Aliyun Marketplace store query has malformed product data")
+            try:
+                total_pages = int(result.get("totalPage") or 1)
+            except (TypeError, ValueError):
+                raise MarketplaceError(
+                    "Aliyun Marketplace store query has invalid pagination data"
+                ) from None
+            if total_pages < 0 or total_pages > 1000:
+                raise MarketplaceError(
+                    "Aliyun Marketplace store query has invalid pagination data"
+                )
+
+            for product in products:
+                if not isinstance(product, dict):
+                    continue
+                supplier = str(product.get("shop_name") or "").strip()
+                delivery = str(product.get("delivery_method") or "").strip()
+                code = str(product.get("productcode") or "").strip()
+                if supplier == self.supplier and delivery == "镜像" and code:
+                    codes.add(code)
+            page += 1
+        return codes
 
     def _initialize(self) -> None:
         if self._client is not None and self._request_factory is not None:
@@ -229,9 +298,10 @@ class AliyunMarketplaceProvider:
             )
 
     def list_offers(self) -> list[Offer]:
+        visible_codes = self._fetch_visible_product_codes()
         self._initialize()
         page_number = 1
-        page_size = 50
+        page_size = self.page_size
         offers: list[Offer] = []
         while True:
             request = self._request_factory()
@@ -278,13 +348,14 @@ class AliyunMarketplaceProvider:
                 if not isinstance(product, dict):
                     continue
                 supplier = str(product.get("SupplierName") or "").strip()
-                if supplier != self.supplier:
+                code = str(product.get("Code") or "").strip()
+                if supplier != self.supplier or code not in visible_codes:
                     continue
                 title = str(product.get("Name") or "")
                 summary = str(product.get("ShortDescription") or "")
                 offers.append(
                     Offer(
-                        entity_id=str(product.get("Code") or ""),
+                        entity_id=code,
                         title=title,
                         visibility="",
                         version=extract_summary_version(summary, title) or "未识别",

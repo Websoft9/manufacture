@@ -10,6 +10,8 @@ The role must have the minimum Market API permission required by `DescribeProduc
 
 The `aliyun` offer list requests `productType=MIRROR` and then verifies the exact supplier name `长沙网久软件有限公司`. It extracts each product's application version from `ShortDescription` using the product name as context, and reports `未识别` when no application version can be confirmed rather than using an unrelated OS or runtime version.
 
+`DescribeProducts` has no front-end visibility or on-sale status filter, and its response includes neither field. To exclude products that are not visible on the storefront, the provider also reads the public store listing endpoint `https://market.aliyun.com/api/ajax/product/queryProducts.json` for store `228399`, keeps only products whose `shop_name` is `长沙网久软件有限公司` and whose `delivery_method` is `镜像`, and intersects those product codes with the `DescribeProducts` results. If the store listing cannot be read, the job fails instead of displaying unverified products.
+
 ## Alibaba Cloud International Marketplace
 The `alibabacloud` option in `.github/workflows/marketplace-offer-list.yml` reads the public Alibaba Cloud International Marketplace store listing at `https://marketplace.alibabacloud.com/api/ajax/newCommodityList/queryNewList.json`, using the Websoft9 store ID `2116499` (`publisherId`). The listing is paginated, and results are verified against the exact `companyName=Websoft9` and `deliveryMethod=Image` values before rendering. Application versions are extracted from the returned product description when the product title provides context; unconfirmed versions are reported as `未识别`.
 
