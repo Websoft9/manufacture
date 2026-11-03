@@ -24,6 +24,10 @@ jobs:
             echo "::error::Configure the AWS_ROLE_ARN Actions variable and allow this repository to assume the role with GitHub OIDC."
             exit 1
           fi
+          if [[ ! "$AWS_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/.+ ]]; then
+            echo "::error::AWS_ROLE_ARN must be an IAM role ARN (arn:aws:iam::<12-digit-account-id>:role/<role-name>), not an OIDC provider ARN."
+            exit 1
+          fi
 
       - name: Configure AWS credentials with GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v6.3.0
