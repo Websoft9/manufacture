@@ -1,0 +1,86 @@
+name: Marketplace Offer List
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Cloud platform to list (currently implemented: aws, aliyun)"
+        type: choice
+        required: true
+        default: aws
+        options:
+          - aws
+          - azure
+          - azure-vmlab
+          - alibabacloud
+          - aliyun
+          - huaweicloud
+          - huaweiyun
+          - googlecloud
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: marketplace-offer-list-${{ inputs.platform }}
+  cancel-in-progress: false
+
+jobs:
+  list-offers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Check AWS role configuration
+        if: inputs.platform == 'aws'
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          if [[ -z "$AWS_ROLE_ARN" ]]; then
+            echo "::error::Configure the AWS_ROLE_ARN Actions variable and allow this repository to assume the role with GitHub OIDC."
+            exit 1
+          fi
+          if [[ ! "$AWS_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/.+ ]]; then
+            echo "::error::AWS_ROLE_ARN must be an IAM role ARN (arn:aws:iam::<12-digit-account-id>:role/<role-name>), not an OIDC provider ARN."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials with GitHub OIDC
+        if: inputs.platform == 'aws'
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: MarketplaceOfferList-${{ github.run_id }}
+
+      - name: Configure Aliyun credentials with GitHub OIDC
+        if: inputs.platform == 'aliyun'
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
+        with:
+          role-to-assume: acs:ram::1904996544835414:role/Github-Action-Updater-Marketplace
+          oidc-provider-arn: acs:ram::1904996544835414:oidc-provider/github-actions-marketplace
+          role-session-name: MarketplaceOfferList-${{ github.run_id }}
+          audience: sts.aliyuncs.com
+
+      - name: Verify AWS caller identity
+        if: inputs.platform == 'aws'
+        run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output table
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install AWS SDK
+        if: inputs.platform == 'aws'
+        run: python -m pip install --disable-pip-version-check boto3
+
+      - name: Install Aliyun SDK
+        if: inputs.platform == 'aliyun'
+        run: python -m pip install --disable-pip-version-check aliyun-python-sdk-core aliyun-python-sdk-market
+
+      - name: List marketplace offers
+        run: python3 ci/scripts/list_marketplace_offers.py --provider "${{ inputs.platform }}" --region "${{ inputs.platform == 'aliyun' && 'cn-hangzhou' || 'us-east-1' }}" >> "$GITHUB_STEP_SUMMARY"
