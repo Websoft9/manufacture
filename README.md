@@ -21,6 +21,7 @@ A Websoft9 automated operations project for mainstream cloud marketplaces. It ma
 
 - `site/` is the project [dashboard](https://websoft9.github.io/marketplace), a visual operations data analysis system.
 - Multiple workflows automatically check product versions, content, and compliance, then trigger manual decisions and optimization.
+- **更新 AWS 商品信息**：创建“更新应用商品信息”Issue，查看对比，通过评论修改或请求 AI 优化，再审核、发布并确认结果。详见[操作流程](specs/marketplace-offer-update-workflow.md)。
 
 ## For Developer
 

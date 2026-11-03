@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 from cli.cli import cli  # noqa: E402
 from cli.marketplace import END_MARKER, START_MARKER  # noqa: E402
 from cli.commands import versions as versions_module  # noqa: E402
+from cli.versioning import extract_summary_version  # noqa: E402
 
 
 class ListCommandTests(unittest.TestCase):
@@ -168,6 +169,23 @@ class VersionsCommandTests(unittest.TestCase):
             "9.0",
         )
         self.assertIsNone(versions_module.extract_version("Ubuntu 24.04, preinstalled image", "moodle"))
+
+    def test_extract_summary_version_ignores_os_versions(self) -> None:
+        self.assertEqual(
+            extract_summary_version("Moodle 5.2.1 on Ubuntu 24.04", "Moodle（Linux）"),
+            "5.2.1",
+        )
+        self.assertEqual(
+            extract_summary_version("ONLYOFFICE Docs 9.0 on Ubuntu 24.04", "ONLYOFFICE Docs（Linux）"),
+            "9.0",
+        )
+        self.assertIsNone(
+            extract_summary_version("Moodle on Ubuntu 24.04", "Moodle（Linux）")
+        )
+        self.assertEqual(
+            extract_summary_version("Moodle for JavaScript 5.2", "Moodle"),
+            "5.2",
+        )
 
 
 if __name__ == "__main__":

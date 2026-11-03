@@ -3,6 +3,10 @@ name: Deploy site to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - "site/**"
+      - "config/marketplace.json"
+      - "data/app-metadata.json"
   workflow_dispatch:
 
 permissions:

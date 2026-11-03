@@ -1,0 +1,33 @@
+name: 更新应用商品信息
+description: 对比线上内容、修改或 AI 优化、人工审核并发布
+title: "[Update app] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        选择已建立商品主数据的应用。创建后会自动生成对比；后续操作在 Issue 评论中完成。
+        当前支持 AWS AMI 商品描述信息，不包含镜像版本、价格或新商品创建。
+        请勿填写凭据、私有报价或敏感信息。
+  - type: dropdown
+    id: application
+    attributes:
+      label: 应用
+      options:
+        - odoo
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 目标平台
+      options:
+        - aws
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: 更新目标
+      description: 希望修正什么，或希望 AI 优化哪些表达？
+    validations:
+      required: true

@@ -12,9 +12,15 @@ import argparse
 import json
 import os
 import sys
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from cli.versioning import extract_summary_version
 
 
 @dataclass(frozen=True)
@@ -153,13 +159,20 @@ class AwsMarketplaceProvider:
 
 
 class AliyunMarketplaceProvider:
-    display_name = "Aliyun Marketplace products"
+    display_name = "Aliyun Marketplace image products"
     id_label = "Product code"
-    extra_columns = ("Supplier", "Delivery way")
+    supplier = "长沙网久软件有限公司"
+    product_type = "MIRROR"
+    columns = (
+        ("Product code", "entity_id"),
+        ("Product title", "title"),
+        ("Application version", "version"),
+        ("Delivery way", "delivery_way"),
+    )
     note = (
-        "Aliyun Market DescribeProducts returns product code, name, supplier, and delivery way. "
-        "This list API does not return visibility, version, or last-modified fields; `-` means "
-        "the field is not provided by this API."
+        "Only image products (`productType=MIRROR`) from supplier "
+        f"`{supplier}` are listed. The application version is extracted from "
+        "`ShortDescription`; `未识别` means no version could be confirmed in the summary."
     )
 
     def __init__(
@@ -224,6 +237,7 @@ class AliyunMarketplaceProvider:
             request = self._request_factory()
             request.set_PageNumber(page_number)
             request.set_PageSize(page_size)
+            request.set_Filters([{"Key": "productType", "Value": self.product_type}])
             request.set_accept_format("json")
             try:
                 response = self._client.do_action_with_exception(request)
@@ -251,8 +265,6 @@ class AliyunMarketplaceProvider:
             result = parsed.get("Result", parsed)
             if not isinstance(result, dict):
                 raise MarketplaceError("Aliyun DescribeProducts returned an unexpected response")
-            if "ProductItems" not in result:
-                raise MarketplaceError("Aliyun DescribeProducts response is missing ProductItems")
             product_items = result.get("ProductItems") or {}
             if not isinstance(product_items, dict):
                 raise MarketplaceError("Aliyun DescribeProducts returned malformed ProductItems")
@@ -265,20 +277,135 @@ class AliyunMarketplaceProvider:
             for product in products:
                 if not isinstance(product, dict):
                     continue
+                supplier = str(product.get("SupplierName") or "").strip()
+                if supplier != self.supplier:
+                    continue
+                title = str(product.get("Name") or "")
+                summary = str(product.get("ShortDescription") or "")
                 offers.append(
                     Offer(
                         entity_id=str(product.get("Code") or ""),
-                        title=str(product.get("Name") or ""),
+                        title=title,
                         visibility="",
-                        version="",
+                        version=extract_summary_version(summary, title) or "未识别",
                         last_modified="",
-                        supplier=str(product.get("SupplierName") or ""),
+                        supplier=supplier,
                         delivery_way=str(product.get("DeliveryWay") or ""),
                     )
                 )
             if len(products) < page_size:
                 break
             page_number += 1
+        return offers
+
+
+class AlibabaCloudMarketplaceProvider:
+    display_name = "Alibaba Cloud Marketplace image products"
+    id_label = "Product code"
+    supplier = "Websoft9"
+    delivery_method = "Image"
+    store_id = "2116499"
+    page_size = 20
+    columns = (
+        ("Product code", "entity_id"),
+        ("Product title", "title"),
+        ("Provider", "supplier"),
+        ("Product type", "delivery_way"),
+        ("Application version", "version"),
+    )
+    note = (
+        "Only image products (`deliveryMethod=Image`) from the Websoft9 Alibaba Cloud store "
+        f"({store_id}) are listed. The application version is extracted from the product "
+        "description; `未识别` means no application version could be confirmed."
+    )
+
+    def __init__(self, region: str = "", opener: Any | None = None) -> None:
+        self.region = region
+        self._opener = opener or urllib.request.urlopen
+
+    def _fetch_page(self, page: int) -> dict[str, Any]:
+        query = urllib.parse.urlencode(
+            {
+                "order": "NewListing",
+                "curPage": page,
+                "keywords": "",
+                "pageSize": self.page_size,
+                "publisherId": self.store_id,
+            }
+        )
+        request = urllib.request.Request(
+            f"https://marketplace.alibabacloud.com/api/ajax/newCommodityList/queryNewList.json?{query}",
+            headers={
+                "User-Agent": "Websoft9-marketplace-offer-list/1.0",
+                "Referer": f"https://marketplace.alibabacloud.com/store/{self.store_id}.html",
+            },
+        )
+        try:
+            with self._opener(request, timeout=30) as response:
+                payload = response.read()
+        except Exception as error:
+            raise MarketplaceError(
+                f"Alibaba Cloud Marketplace store query failed ({type(error).__name__})"
+            ) from None
+
+        try:
+            parsed = json.loads(payload)
+        except (TypeError, ValueError, UnicodeDecodeError):
+            raise MarketplaceError("Alibaba Cloud Marketplace returned invalid JSON") from None
+        if not isinstance(parsed, dict):
+            raise MarketplaceError("Alibaba Cloud Marketplace returned an unexpected response")
+        if parsed.get("success") is not True:
+            code = parsed.get("code") or "unknown error"
+            raise MarketplaceError(f"Alibaba Cloud Marketplace store query failed ({code})")
+        result = parsed.get("result")
+        if not isinstance(result, dict):
+            raise MarketplaceError("Alibaba Cloud Marketplace response is missing result data")
+        if not isinstance(result.get("product"), list):
+            raise MarketplaceError("Alibaba Cloud Marketplace response has malformed product data")
+        try:
+            total_pages = int(result["totalPage"])
+        except (KeyError, TypeError, ValueError):
+            raise MarketplaceError("Alibaba Cloud Marketplace response is missing pagination data") from None
+        if total_pages < 0:
+            raise MarketplaceError("Alibaba Cloud Marketplace response has invalid pagination data")
+        result["totalPage"] = total_pages
+        return result
+
+    def list_offers(self) -> list[Offer]:
+        offers: list[Offer] = []
+        page = 1
+        total_pages = 1
+        while page <= total_pages:
+            result = self._fetch_page(page)
+            total_pages = result["totalPage"]
+            for item in result["product"]:
+                if not isinstance(item, dict):
+                    continue
+                product = item.get("productInfo")
+                if not isinstance(product, dict):
+                    continue
+                supplier = str(product.get("companyName") or "").strip()
+                delivery_method = str(product.get("deliveryMethod") or "").strip()
+                if supplier != self.supplier or delivery_method != self.delivery_method:
+                    continue
+                title = str(product.get("title") or "")
+                description = str(product.get("describe") or "")
+                app_name = title.split(" - ", maxsplit=1)[0]
+                version = extract_summary_version(description, app_name) or "未识别"
+                if version.startswith(("v", "V")):
+                    version = version[1:]
+                offers.append(
+                    Offer(
+                        entity_id=str(product.get("code") or ""),
+                        title=title,
+                        visibility="",
+                        version=version,
+                        last_modified="",
+                        supplier=supplier,
+                        delivery_way=delivery_method,
+                    )
+                )
+            page += 1
         return offers
 
 
@@ -295,6 +422,7 @@ PLATFORMS = (
 
 PROVIDERS: dict[str, type[MarketplaceProvider]] = {
     "aws": AwsMarketplaceProvider,
+    "alibabacloud": AlibabaCloudMarketplaceProvider,
     "aliyun": AliyunMarketplaceProvider,
 }
 
@@ -304,9 +432,18 @@ def _cell(value: str) -> str:
 
 
 def render_markdown(provider: MarketplaceProvider, offers: list[Offer]) -> str:
-    extra_columns = getattr(provider, "extra_columns", ())
-    headers = [provider.id_label, "Product title", "Visibility", "Version", "Last updated"]
-    headers.extend(extra_columns)
+    columns = getattr(
+        provider,
+        "columns",
+        (
+            (provider.id_label, "entity_id"),
+            ("Product title", "title"),
+            ("Visibility", "visibility"),
+            ("Version", "version"),
+            ("Last updated", "last_modified"),
+        ),
+    )
+    headers = [label for label, _ in columns]
     lines = [
         f"## {provider.display_name}",
         "",
@@ -316,15 +453,7 @@ def render_markdown(provider: MarketplaceProvider, offers: list[Offer]) -> str:
         "| " + " | ".join("---" for _ in headers) + " |",
     ]
     for offer in sorted(offers, key=lambda item: (item.title.casefold(), item.entity_id)):
-        cells = [
-            _cell(offer.entity_id),
-            _cell(offer.title),
-            _cell(offer.visibility or "-"),
-            _cell(offer.version or "-"),
-            _cell(offer.last_modified or "-"),
-        ]
-        if extra_columns:
-            cells.extend([_cell(offer.supplier or "-"), _cell(offer.delivery_way or "-")])
+        cells = [_cell(getattr(offer, field) or "-") for _, field in columns]
         lines.append("| " + " | ".join(cells) + " |")
     if provider.note:
         lines.extend(["", f"> {provider.note}"])
@@ -354,7 +483,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    default_region = "cn-hangzhou" if args.provider == "aliyun" else "us-east-1"
+    default_region = {
+        "aliyun": "cn-hangzhou",
+        "alibabacloud": "",
+    }.get(args.provider, "us-east-1")
     provider = PROVIDERS[args.provider](region=args.region or default_region)
     try:
         offers = provider.list_offers()

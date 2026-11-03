@@ -67,6 +67,11 @@ inspect the actual marketplace rendering after a write.
 
 ## Commands
 
+For the Issue/Form and Actions user journey (compare, restricted editing or AI
+optimization, review, publish and confirm), see
+[`marketplace-offer-update-workflow.md`](marketplace-offer-update-workflow.md).
+It reuses the renderer and revision-bound planner documented here.
+
 Offline commands use the repository template and schema; JSON and Markdown
 are printed to stdout and no source file is rewritten.
 

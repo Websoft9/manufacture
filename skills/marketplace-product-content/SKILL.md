@@ -26,6 +26,13 @@ This implements product expressiveness and transactionability. It complements
 
 ## Procedure
 
+For Issue-driven requests, follow `specs/marketplace-offer-update-workflow.md`.
+Use the `/offer` task commands for comparisons and publication. Only summary,
+value proposition, use cases and keywords are editable in that journey; do not
+bypass its fixed sections with contentOverrides. AI suggestions are draft copy,
+never fact verification or approval. Keep the final task-local product snapshot
+available for maintaining accepted copy in repository master data.
+
 1. Read the existing master record and schema. Match the application `key` to
    the catalog and identify the exact edition and AWS listing. A public SKU,
    `prodview-` page identifier or AMI product code is not the Catalog EntityId.

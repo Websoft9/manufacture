@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import csv
 import io
-import re
 import urllib.error
 
 import click
 
 from ..aliyun_market import fetch_aliyun_product
 from ..marketplace import OFFER_URL, load_json
+from ..versioning import extract_version
 
 
 @click.command("versions")
@@ -78,29 +78,3 @@ def versions_command(platform: str, offer: str, timeout: float, output_format: s
     click.echo("| --- | --- | --- | --- |")
     for row in rows:
         click.echo("| " + " | ".join(value.replace("|", "\\|").replace("\n", " ") for value in row) + " |")
-
-
-def extract_version(summary: str, app: str) -> str | None:
-    """Return a version-like token from the product summary, preferring app context."""
-    candidates = list(re.finditer(r"(?<![\w])v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?", summary, re.IGNORECASE))
-    if not candidates:
-        return None
-
-    normalized_app = re.sub(r"[^a-z0-9]", "", app.casefold())
-    normalized_summary_chars: list[str] = []
-    original_positions: list[int] = []
-    for index, char in enumerate(summary.casefold()):
-        if char.isalnum():
-            normalized_summary_chars.append(char)
-            original_positions.append(index)
-    normalized_summary = "".join(normalized_summary_chars)
-    app_index = normalized_summary.find(normalized_app) if normalized_app else -1
-    if app_index < 0:
-        return None
-
-    app_end = original_positions[app_index + len(normalized_app) - 1] + 1
-    following = [candidate for candidate in candidates if candidate.start() >= app_end]
-    if following:
-        return following[0].group(0)
-    preceding = [candidate for candidate in candidates if candidate.end() <= original_positions[app_index]]
-    return preceding[-1].group(0) if preceding else None

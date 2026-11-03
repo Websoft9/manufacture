@@ -4,6 +4,7 @@
 - The business positioning and scope are defined in [`business-positioning.md`](business-positioning.md).
 - GitHub Actions connects to AWS through OIDC; see [`cloud-connector.md`](cloud-connector.md).
 - For product master data, personalized AWS AMI listing content and Catalog metadata update commands, see [`marketplace-product-content.md`](marketplace-product-content.md) and the [`marketplace-product-content`](../skills/marketplace-product-content/SKILL.md) skill.
+- For Issue-based comparison, restricted AI editing, review, publication and confirmation, see [`marketplace-offer-update-workflow.md`](marketplace-offer-update-workflow.md).
 - Files such as `aliyun.json`, `aws.json`, `azure.json`, `huawei.json`, and `qcloud.json` contain existing task data. Check downstream consumers before editing and preserve their schemas.
 - AI collaboration rules are in the root `AGENTS.md`; reusable workflows are in `skills/`.
 - Reusable automation scripts live in the root `ci/` directory.

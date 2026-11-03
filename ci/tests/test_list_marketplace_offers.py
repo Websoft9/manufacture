@@ -161,12 +161,16 @@ class FakeAliyunRequest:
     def __init__(self) -> None:
         self.page_number = 0
         self.page_size = 0
+        self.filters = []
 
     def set_PageNumber(self, value):
         self.page_number = value
 
     def set_PageSize(self, value):
         self.page_size = value
+
+    def set_Filters(self, value):
+        self.filters = value
 
     def set_accept_format(self, value):
         self.accept_format = value
@@ -182,12 +186,19 @@ class FakeAliyunClient:
             products = [
                 {
                     "Code": "cmjj001",
-                    "Name": "Example",
-                    "SupplierName": "Websoft9",
-                    "DeliveryWay": "Image",
+                    "Name": "Moodle",
+                    "SupplierName": "长沙网久软件有限公司",
+                    "DeliveryWay": "镜像",
+                    "ShortDescription": "Moodle 5.2.1 on Ubuntu 24.04",
                 }
             ] + [
-                {"Code": f"other-{index}", "Name": f"Other {index}"}
+                {
+                    "Code": f"other-{index}",
+                    "Name": f"Other {index}",
+                    "SupplierName": "其他公司",
+                    "DeliveryWay": "镜像",
+                    "ShortDescription": f"Other {index} 9.9 on Ubuntu 24.04",
+                }
                 for index in range(49)
             ]
             return json.dumps(
@@ -201,7 +212,7 @@ class FakeAliyunClient:
 
 
 class AliyunProviderTests(unittest.TestCase):
-    def test_lists_products_and_paginates(self) -> None:
+    def test_lists_image_products_for_supplier_and_paginates(self) -> None:
         client = FakeAliyunClient()
         provider = offers.AliyunMarketplaceProvider(
             client=client,
@@ -210,15 +221,34 @@ class AliyunProviderTests(unittest.TestCase):
 
         result = provider.list_offers()
 
-        self.assertEqual(len(result), 50)
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0].entity_id, "cmjj001")
-        self.assertEqual(result[0].title, "Example")
-        self.assertEqual(result[0].supplier, "Websoft9")
-        self.assertEqual(result[0].delivery_way, "Image")
+        self.assertEqual(result[0].title, "Moodle")
+        self.assertEqual(result[0].supplier, "长沙网久软件有限公司")
+        self.assertEqual(result[0].delivery_way, "镜像")
+        self.assertEqual(result[0].version, "5.2.1")
         self.assertEqual([request.page_number for request in client.requests], [1, 2])
         self.assertTrue(all(request.page_size == 50 for request in client.requests))
+        self.assertTrue(
+            all(
+                request.filters == [{"Key": "productType", "Value": "MIRROR"}]
+                for request in client.requests
+            )
+        )
 
-    def test_render_marks_unavailable_aliyun_fields(self) -> None:
+    def test_empty_product_items_is_not_an_error(self) -> None:
+        class EmptyClient:
+            def do_action_with_exception(self, request):
+                return '{"Result":{}}'
+
+        provider = offers.AliyunMarketplaceProvider(
+            client=EmptyClient(),
+            request_factory=FakeAliyunRequest,
+        )
+
+        self.assertEqual(provider.list_offers(), [])
+
+    def test_render_lists_application_versions(self) -> None:
         provider = offers.AliyunMarketplaceProvider(
             client=FakeAliyunClient(),
             request_factory=FakeAliyunRequest,
@@ -226,13 +256,43 @@ class AliyunProviderTests(unittest.TestCase):
 
         markdown = offers.render_markdown(provider, provider.list_offers())
 
-        self.assertIn("| Product code | Product title | Visibility | Version | Last updated | Supplier | Delivery way |", markdown)
-        self.assertIn("| cmjj001 | Example | - | - | - | Websoft9 | Image |", markdown)
-        self.assertIn("does not return visibility, version, or last-modified fields", markdown)
+        self.assertIn(
+            "| Product code | Product title | Application version | Delivery way |",
+            markdown,
+        )
+        self.assertIn("| cmjj001 | Moodle | 5.2.1 | 镜像 |", markdown)
+        self.assertIn("Only image products", markdown)
+        self.assertIn("长沙网久软件有限公司", markdown)
+
+    def test_unidentified_version_is_not_guessed(self) -> None:
+        provider = offers.AliyunMarketplaceProvider(
+            client=FakeAliyunClient(),
+            request_factory=FakeAliyunRequest,
+        )
+
+        markdown = offers.render_markdown(
+            provider,
+            [
+                offers.Offer(
+                    entity_id="cmjj002",
+                    title="Moodle",
+                    visibility="",
+                    version="未识别",
+                    last_modified="",
+                    supplier=provider.supplier,
+                    delivery_way="镜像",
+                )
+            ],
+        )
+
+        self.assertIn("| cmjj002 | Moodle | 未识别 | 镜像 |", markdown)
 
     def test_aliyun_is_registered_as_provider(self) -> None:
         self.assertIs(offers.PROVIDERS["aliyun"], offers.AliyunMarketplaceProvider)
-        self.assertNotIn("alibabacloud", offers.PROVIDERS)
+        self.assertIs(
+            offers.PROVIDERS["alibabacloud"],
+            offers.AlibabaCloudMarketplaceProvider,
+        )
 
     def test_cli_uses_aliyun_region_by_default(self) -> None:
         provider = AliyunProviderSpy()
@@ -244,6 +304,100 @@ class AliyunProviderTests(unittest.TestCase):
         with patch.dict(offers.PROVIDERS, {"aliyun": provider_factory}):
             self.assertEqual(offers.main(["--provider", "aliyun"]), 0)
         self.assertEqual(provider.region, "cn-hangzhou")
+
+
+class AlibabaCloudResponse(io.BytesIO):
+    pass
+
+
+class AlibabaCloudProviderTests(unittest.TestCase):
+    def _response(self, products: list[dict], total_pages: int) -> bytes:
+        return json.dumps(
+            {
+                "success": True,
+                "result": {
+                    "product": products,
+                    "totalPage": total_pages,
+                },
+            }
+        ).encode()
+
+    @staticmethod
+    def _product(
+        code: str,
+        title: str,
+        description: str,
+        *,
+        company: str = "Websoft9",
+        delivery: str = "Image",
+    ) -> dict:
+        return {
+            "productInfo": {
+                "code": code,
+                "title": title,
+                "describe": description,
+                "companyName": company,
+                "deliveryMethod": delivery,
+            }
+        }
+
+    def test_lists_paginated_websoft9_image_products(self) -> None:
+        responses = [
+            self._response(
+                [
+                    self._product("sgcmjj001", "Moodle - Preconfigured", "Moodle v5.2"),
+                    self._product("other-supplier", "Other", "Other v1.0", company="Other"),
+                    self._product("websoft9-app", "App", "App v2.0", delivery="SaaS"),
+                ],
+                2,
+            ),
+            self._response(
+                [self._product("sgcmjj002", "Gitea - Preconfigured", "Gitea v1.27")],
+                2,
+            ),
+        ]
+        requests = []
+
+        def fake_open(request, timeout):
+            requests.append((request, timeout))
+            return AlibabaCloudResponse(responses.pop(0))
+
+        provider = offers.AlibabaCloudMarketplaceProvider(opener=fake_open)
+        result = provider.list_offers()
+
+        self.assertEqual([offer.entity_id for offer in result], ["sgcmjj001", "sgcmjj002"])
+        self.assertEqual([offer.version for offer in result], ["5.2", "1.27"])
+        self.assertTrue(all(offer.supplier == "Websoft9" for offer in result))
+        self.assertTrue(all(offer.delivery_way == "Image" for offer in result))
+        self.assertEqual(len(requests), 2)
+        self.assertIn("publisherId=2116499", requests[0][0].full_url)
+        self.assertIn("curPage=1", requests[0][0].full_url)
+        self.assertIn("curPage=2", requests[1][0].full_url)
+
+    def test_render_identifies_provider_and_image_type(self) -> None:
+        provider = offers.AlibabaCloudMarketplaceProvider(
+            opener=lambda request, timeout: AlibabaCloudResponse(
+                self._response(
+                    [self._product("sgcmjj001", "Moodle", "Moodle v5.2")],
+                    1,
+                )
+            )
+        )
+
+        markdown = offers.render_markdown(provider, provider.list_offers())
+
+        self.assertIn(
+            "| Product code | Product title | Provider | Product type | Application version |",
+            markdown,
+        )
+        self.assertIn("| sgcmjj001 | Moodle | Websoft9 | Image | 5.2 |", markdown)
+
+    def test_alibabacloud_is_registered_and_uses_no_region(self) -> None:
+        self.assertIs(
+            offers.PROVIDERS["alibabacloud"],
+            offers.AlibabaCloudMarketplaceProvider,
+        )
+        self.assertEqual(offers.AlibabaCloudMarketplaceProvider().region, "")
 
 
 class FakeProvider:
@@ -270,7 +424,6 @@ class AliyunProviderSpy:
     display_name = "Aliyun Marketplace products"
     id_label = "Product code"
     note = ""
-    extra_columns = ("Supplier", "Delivery way")
 
     def __init__(self) -> None:
         self.region = ""
@@ -298,7 +451,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result, 1)
         self.assertIn("azure offer listing is not implemented yet", output.getvalue())
-        self.assertIn("implemented providers: aliyun, aws", output.getvalue())
+        self.assertIn("implemented providers: alibabacloud, aliyun, aws", output.getvalue())
 
     def test_azure_vmlab_is_selectable_and_reports_unimplemented(self) -> None:
         self.assertIn("azure-vmlab", offers.PLATFORMS)
