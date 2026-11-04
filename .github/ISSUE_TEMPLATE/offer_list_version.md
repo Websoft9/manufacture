@@ -16,6 +16,7 @@ assignees: ''
 - Check Target:
 - Review:
 - Missing version:
+- Missing image:
 
 ### Offer list
 

@@ -33,8 +33,10 @@ The Aliyun integration uses Market API `2015-11-01` `DescribeProduct` for each c
 
 The Marketplace Offer List reads target application versions from `sources.versions` in `config/marketplace.json` (the `apps-version.json` source keyed by application ID). Product codes are mapped to application IDs through `offer.json`; a product without a unique mapping shows `-` instead of guessing a target version.
 
-The Offer List also shows the first sentence of the product short description and an update suggestion. The suggestion compares Offer Version with Target Version: a newer target produces `Need Update`, an older target produces `Check Target`, an equal version produces `Up to date`, and missing/unparsable values produce `-`.
+The Offer List also shows the first sentence of the product short description, whether the product has an image, and an update suggestion. The suggestion compares Offer Version with Target Version: a newer target produces `Need Update`, an older target produces `Check Target`, an equal version produces `Up to date`, and missing/unparsable values produce `-`.
 
 ## Offer List workflow
 
-The `Marketplace Offer List` workflow supports `all` (AWS, Aliyun China, and Alibaba Cloud International) or a single implemented cloud. Each scanned cloud creates one issue titled `Offer list and version - <cloud> - <scan time>` using the offer list and version summary. The workflow sends a final WeCom markdown notification using the `WECOM_WEBHOOK` secret. Update times are rendered as `YYYY-MM-DD`.
+The `Marketplace Offer List` workflow runs every Tuesday at 08:12 China Standard Time (`00:12 UTC`) and also supports manual runs. It supports `all` (AWS, Aliyun China, and Alibaba Cloud International) or a single implemented cloud. Each scanned cloud creates one issue titled `Offer list and version - <cloud> - <scan time>` using the offer list and version summary. The workflow sends a final WeCom markdown notification using the `WECOM_WEBHOOK` secret. Update times are rendered as `YYYY-MM-DD`. Products without a provider image field are counted as `Missing image` in issues and notifications.
+
+The Marketplace Offer List WeCom notification sends a separate text message to mention `17773112964` with `Please check issue and update offers`, because group-robot markdown does not reliably support `mentioned_list`. This mention is scoped to this workflow through the `--offer-list-notify` flag and is not used by other actions.

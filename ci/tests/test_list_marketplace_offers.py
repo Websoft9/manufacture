@@ -68,6 +68,8 @@ class FakeClient:
             return {
                 "LastModifiedDate": "2026-03-02",
                 "DetailsDocument": {
+                    "Description": {"Sku": "sku-1"},
+                    "PromotionalResources": {"LogoUrl": "https://example.com/logo.png"},
                     "Versions": [
                         {
                             "VersionTitle": "1.0",
@@ -133,16 +135,16 @@ class AwsProviderTests(unittest.TestCase):
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn(
-            "| Catalog Entity ID | Product title | Visibility | Offer Version | Target Version | Update Suggestion | Update Time |",
+            "| Catalog Entity ID | Product title | Has Image | Visibility | Offer Version | Target Version | Update Suggestion | Update Time |",
             markdown,
         )
         self.assertIn(
-            "| [prod-1](https://aws.amazon.com/marketplace/pp?sku=sku-1) | One | Public | "
+            "| [prod-1](https://aws.amazon.com/marketplace/pp?sku=sku-1) | One | Yes | Public | "
             "3.0 | 5.0 | Need Update | 2026-03-02 |",
             markdown,
         )
         self.assertIn(
-            "| prod-3 | Three | Public | - | - | - | 2025-11-01 |",
+            "| prod-3 | Three | No | Public | - | - | - | 2025-11-01 |",
             markdown,
         )
         self.assertIn("Only products with `Visibility=Public` are listed.", markdown)
@@ -243,6 +245,7 @@ def aliyun_store_opener(codes):
                         "shop_name": "长沙网久软件有限公司",
                         "delivery_method": "镜像",
                         "productcode": code,
+                        "pictureUrl": f"https://example.com/{code}.png",
                     }
                     for code in codes
                 ],
@@ -293,6 +296,7 @@ class AliyunProviderTests(unittest.TestCase):
                             "shop_name": "长沙网久软件有限公司",
                             "delivery_method": "镜像",
                             "productcode": code,
+                            "pictureUrl": f"https://example.com/{code}.png",
                         }
                         for code in codes
                     ],
@@ -350,12 +354,12 @@ class AliyunProviderTests(unittest.TestCase):
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn(
-            "| Product code | Product title | Short Description | Offer Version | Target Version | Update Suggestion | Update Time |",
+            "| Product code | Product title | Short Description | Has Image | Offer Version | Target Version | Update Suggestion | Update Time |",
             markdown,
         )
         self.assertIn(
             "| [cmjj001](https://market.aliyun.com/detail/cmjj001) | Moodle | "
-            "Moodle 5.2.1 on Ubuntu 24.04 | 5.2.1 | 5.3 | Need Update | 2027-01-15 |",
+            "Moodle 5.2.1 on Ubuntu 24.04 | Yes | 5.2.1 | 5.3 | Need Update | 2027-01-15 |",
             markdown,
         )
         self.assertIn("Only front-end visible image products", markdown)
@@ -385,7 +389,7 @@ class AliyunProviderTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "| [cmjj002](https://market.aliyun.com/detail/cmjj002) | Moodle | - | "
+            "| [cmjj002](https://market.aliyun.com/detail/cmjj002) | Moodle | - | No | "
             "未识别 | 5.3 | - | - |",
             markdown,
         )
@@ -454,6 +458,7 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         return {
             "latestVersion": latest_version,
             "lastUpdated": last_updated,
+            "logo": "https://example.com/logo.png",
         }
 
     def test_lists_paginated_websoft9_image_products(self) -> None:
@@ -509,12 +514,12 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn(
-            "| Product code | Product title | Short Description | Offer Version | Target Version | Update Suggestion | Update Time |",
+            "| Product code | Product title | Short Description | Has Image | Offer Version | Target Version | Update Suggestion | Update Time |",
             markdown,
         )
         self.assertIn(
             "| [sgcmjj001](https://marketplace.alibabacloud.com/products/201072001/sgcmjj001.html) "
-            "| Moodle - Preconfigured | Moodle v5.2, preconfigured | 5.2 | 5.4 | Need Update | 2027-09-03 |",
+            "| Moodle - Preconfigured | Moodle v5.2, preconfigured | Yes | 5.2 | 5.4 | Need Update | 2027-09-03 |",
             markdown,
         )
 
@@ -631,6 +636,15 @@ class SuggestionTests(unittest.TestCase):
         self.assertEqual(offers._version_suggestion("5.2.1", "5.3"), "Need Update")
         self.assertEqual(offers._version_suggestion("v5.3", "5.3"), "Up to date")
         self.assertEqual(offers._version_suggestion("5.4", "5.3"), "Check Target")
+        self.assertEqual(offers._version_suggestion("1.5", "1.5.9"), "Up to date")
+        self.assertEqual(
+            offers._version_suggestion("1.5 - Ubuntu 22.04", "1.5.9"),
+            "Up to date",
+        )
+        self.assertEqual(
+            offers._version_suggestion("1.6 - Ubuntu 22.04", "1.5.9"),
+            "Check Target",
+        )
         self.assertEqual(offers._version_suggestion("未识别", "5.3"), "-")
         self.assertEqual(offers._version_suggestion("5.2", ""), "-")
 
@@ -667,11 +681,12 @@ class IssueAndNotificationTests(unittest.TestCase):
                     "count": 2,
                     "need_update": 1,
                     "up_to_date": 1,
+                    "missing_image": 1,
                     "issue_url": "https://github.com/o/r/issues/1",
                 }
             ],
         )
-        self.assertIn("**AWS**: 2 products; Need Update 1; Up to date 1", message)
+        self.assertIn("**AWS**: 2 products; Need Update 1; Up to date 1; Missing image 1", message)
         self.assertIn("https://github.com/o/r/issues/1", message)
 
 

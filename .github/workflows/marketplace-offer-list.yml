@@ -1,6 +1,9 @@
 name: Marketplace Offer List
 
 on:
+  schedule:
+    # Every Tuesday at 08:12 China Standard Time (UTC+8).
+    - cron: "12 0 * * 2"
   workflow_dispatch:
     inputs:
       platform:
@@ -25,19 +28,21 @@ permissions:
   issues: write
 
 concurrency:
-  group: marketplace-offer-list-${{ inputs.platform }}
+  group: marketplace-offer-list-${{ github.event_name == 'schedule' && 'all' || inputs.platform }}
   cancel-in-progress: false
 
 jobs:
   list-offers:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      PLATFORM: ${{ github.event_name == 'schedule' && 'all' || inputs.platform }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
       - name: Check AWS role configuration
-        if: inputs.platform == 'aws' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aws' || env.PLATFORM == 'all'
         env:
           AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
         run: |
@@ -51,7 +56,7 @@ jobs:
           fi
 
       - name: Configure AWS credentials with GitHub OIDC
-        if: inputs.platform == 'aws' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aws' || env.PLATFORM == 'all'
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
@@ -59,7 +64,7 @@ jobs:
           role-session-name: MarketplaceOfferList-${{ github.run_id }}
 
       - name: Check Aliyun role configuration
-        if: inputs.platform == 'aliyun' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aliyun' || env.PLATFORM == 'all'
         env:
           ALIYUN_ROLE_ARN: ${{ vars.ALIYUN_ROLE_ARN }}
           ALIYUN_OIDC_PROVIDER_ARN: ${{ vars.ALIYUN_OIDC_PROVIDER_ARN }}
@@ -84,7 +89,7 @@ jobs:
           fi
 
       - name: Configure Aliyun credentials with GitHub OIDC
-        if: inputs.platform == 'aliyun' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aliyun' || env.PLATFORM == 'all'
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
         with:
           role-to-assume: ${{ vars.ALIYUN_ROLE_ARN }}
@@ -93,7 +98,7 @@ jobs:
           audience: sts.aliyuncs.com
 
       - name: Verify AWS caller identity
-        if: inputs.platform == 'aws' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aws' || env.PLATFORM == 'all'
         run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output table
 
       - name: Set up Python
@@ -102,16 +107,15 @@ jobs:
           python-version: "3.12"
 
       - name: Install AWS SDK
-        if: inputs.platform == 'aws' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aws' || env.PLATFORM == 'all'
         run: python -m pip install --disable-pip-version-check boto3
 
       - name: Install Aliyun SDK
-        if: inputs.platform == 'aliyun' || inputs.platform == 'all'
+        if: env.PLATFORM == 'aliyun' || env.PLATFORM == 'all'
         run: python -m pip install --disable-pip-version-check aliyun-python-sdk-core aliyun-python-sdk-market
 
       - name: List marketplace offers and create issues
         env:
-          PLATFORM: ${{ inputs.platform }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -133,7 +137,7 @@ jobs:
           NOTIFICATION_FILE: /tmp/marketplace-offer-list-wecom.md
         run: |
           if [[ -f "$NOTIFICATION_FILE" ]]; then
-            python3 ci/scripts/wecom_notify.py --markdown-file "$NOTIFICATION_FILE"
+            python3 ci/scripts/wecom_notify.py --markdown-file "$NOTIFICATION_FILE" --offer-list-notify
           else
             echo "::warning::Offer list notification file was not created"
           fi

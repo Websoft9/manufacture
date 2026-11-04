@@ -44,10 +44,15 @@ class Offer:
     target_version: str = ""
     product_url: str = ""
     summary: str = ""
+    has_image: bool = False
 
     @property
     def update_suggestion(self) -> str:
         return _version_suggestion(self.version, self.target_version)
+
+    @property
+    def has_image_label(self) -> str:
+        return "Yes" if self.has_image else "No"
 
 
 class MarketplaceError(RuntimeError):
@@ -94,12 +99,28 @@ def _first_sentence(value: Any) -> str:
     return text
 
 
-def _version_key(value: str) -> tuple[int, ...] | None:
-    text = str(value or "").strip().lstrip("vV")
-    if not re.search(r"\d", text):
+def _version_token(value: str) -> str | None:
+    text = str(value or "").strip()
+    match = re.search(r"v?\d+(?:\.\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?", text, re.IGNORECASE)
+    return match.group(0) if match else None
+
+
+def _version_parts(value: str) -> list[int] | None:
+    token = _version_token(value)
+    if token is None:
         return None
-    prerelease = 0 if re.search(r"(?i)(?:rc|beta|alpha|preview|pre|dev)", text) else 1
-    numbers = [int(item) for item in re.findall(r"\d+", text)][:4]
+    numbers = [int(item) for item in re.findall(r"\d+", token)]
+    while len(numbers) > 1 and numbers[-1] == 0:
+        numbers.pop()
+    return numbers
+
+
+def _version_key(value: str) -> tuple[int, ...] | None:
+    token = _version_token(value)
+    if token is None:
+        return None
+    prerelease = 0 if re.search(r"(?i)(?:rc|beta|alpha|preview|pre|dev)", token) else 1
+    numbers = [int(item) for item in re.findall(r"\d+", token)][:4]
     numbers.extend([0] * (4 - len(numbers)))
     return tuple(numbers) + (prerelease,)
 
@@ -109,6 +130,11 @@ def _version_suggestion(offer_version: str, target_version: str) -> str:
     target = str(target_version or "").strip()
     if not offer or not target or offer == "未识别":
         return "-"
+    offer_parts = _version_parts(offer)
+    target_parts = _version_parts(target)
+    if offer_parts is not None and target_parts is not None:
+        if target_parts[: len(offer_parts)] == offer_parts:
+            return "Up to date"
     if offer.lstrip("vV").casefold() == target.lstrip("vV").casefold():
         return "Up to date"
     offer_key = _version_key(offer)
@@ -197,6 +223,7 @@ class AwsMarketplaceProvider:
     columns = (
         ("Catalog Entity ID", "product_link"),
         ("Product title", "title"),
+        ("Has Image", "has_image_label"),
         ("Visibility", "visibility"),
         ("Offer Version", "version"),
         ("Target Version", "target_version"),
@@ -240,7 +267,7 @@ class AwsMarketplaceProvider:
                 raise MarketplaceError(permission_hint) from None
             raise MarketplaceError(f"AWS {operation} failed ({code})") from None
 
-    def _describe(self, entity_id: str) -> tuple[str, str, str]:
+    def _describe(self, entity_id: str) -> tuple[str, str, str, bool]:
         response = self._call(
             "describe_entity",
             "DescribeEntity permission is required to list versions. "
@@ -268,21 +295,34 @@ class AwsMarketplaceProvider:
         ]
         candidates = public_versions
         if not candidates:
-            return "", "", _latest_update_time(response.get("LastModifiedDate"))
+            return "", "", _latest_update_time(response.get("LastModifiedDate")), False
 
         latest = max(candidates, key=lambda version: version.get("CreationDate") or "")
-        sku = next(
-            (
-                str(option.get("Sku") or "")
-                for option in (latest.get("DeliveryOptions") or [])
-                if option.get("Visibility") == "Public" and option.get("Sku")
-            ),
-            "",
+        description = detail.get("Description") or {}
+        sku = str(description.get("Sku") or "").strip() if isinstance(description, dict) else ""
+        if not sku:
+            sku = next(
+                (
+                    str(option.get("Sku") or "")
+                    for option in (latest.get("DeliveryOptions") or [])
+                    if option.get("Visibility") == "Public" and option.get("Sku")
+                ),
+                "",
+            )
+        promotional = detail.get("PromotionalResources") or {}
+        has_image = bool(
+            str(
+                promotional.get("LogoUrl")
+                or promotional.get("ImageUrl")
+                or detail.get("LogoUrl")
+                or ""
+            ).strip()
         )
         return (
             latest.get("VersionTitle") or latest.get("Id") or "",
             sku,
             _latest_update_time(response.get("LastModifiedDate")),
+            has_image,
         )
 
     def list_offers(self) -> list[Offer]:
@@ -307,7 +347,7 @@ class AwsMarketplaceProvider:
                 if summary.get("Visibility") != "Public":
                     continue
                 entity_id = entity.get("EntityId", "")
-                version, sku, last_modified = self._describe(entity_id)
+                version, sku, last_modified, has_image = self._describe(entity_id)
                 offers.append(
                     Offer(
                         entity_id=entity_id,
@@ -317,6 +357,7 @@ class AwsMarketplaceProvider:
                         last_modified=last_modified,
                         target_version=self.target_versions.get(sku, ""),
                         product_url=marketplace_product_url("aws", sku),
+                        has_image=has_image,
                     )
                 )
             token = response.get("NextToken")
@@ -337,6 +378,7 @@ class AliyunMarketplaceProvider:
         ("Product code", "product_link"),
         ("Product title", "title"),
         ("Short Description", "summary"),
+        ("Has Image", "has_image_label"),
         ("Offer Version", "version"),
         ("Target Version", "target_version"),
         ("Update Suggestion", "update_suggestion"),
@@ -588,6 +630,14 @@ class AliyunMarketplaceProvider:
                         target_version=self.target_versions.get(code, ""),
                         product_url=marketplace_product_url("aliyun", code),
                         summary=_first_sentence(summary or store_summary),
+                        has_image=bool(
+                            str(
+                                store_product.get("pictureUrl")
+                                or store_product.get("imageUrl")
+                                or product.get("ImageUrl")
+                                or ""
+                            ).strip()
+                        ),
                     )
                 )
             if len(products) < page_size:
@@ -606,6 +656,7 @@ class AlibabaCloudMarketplaceProvider:
         ("Product code", "product_link"),
         ("Product title", "title"),
         ("Short Description", "summary"),
+        ("Has Image", "has_image_label"),
         ("Offer Version", "version"),
         ("Target Version", "target_version"),
         ("Update Suggestion", "update_suggestion"),
@@ -805,6 +856,7 @@ class AlibabaCloudMarketplaceProvider:
                         target_version=self.target_versions.get(code, ""),
                         product_url=marketplace_product_url("alibabacloud", code),
                         summary=_first_sentence(description),
+                        has_image=bool(str(detail.get("logo") or "").strip()),
                     )
                 )
             page += 1
@@ -921,6 +973,7 @@ def _issue_body(provider: MarketplaceProvider, offers: list[Offer], markdown: st
         for offer in offers
         if not offer.version or not offer.target_version or offer.version == "未识别"
     )
+    missing_image = sum(1 for offer in offers if not offer.has_image)
     return "\n".join(
         [
             "## Offer list and version",
@@ -933,6 +986,7 @@ def _issue_body(provider: MarketplaceProvider, offers: list[Offer], markdown: st
             f"- Check Target: {check_target}",
             f"- Review: {review}",
             f"- Missing version: {missing}",
+            f"- Missing image: {missing_image}",
             "",
             markdown,
         ]
@@ -981,7 +1035,8 @@ def _notification_markdown(scan_time: str, results: list[dict[str, Any]]) -> str
             continue
         line = (
             f"> **{label}**: {result['count']} products; "
-            f"Need Update {result['need_update']}; Up to date {result['up_to_date']}"
+            f"Need Update {result['need_update']}; Up to date {result['up_to_date']}; "
+            f"Missing image {result['missing_image']}"
         )
         if result.get("issue_url"):
             line += f"; [Issue]({result['issue_url']})"
@@ -1060,6 +1115,7 @@ def main(argv: list[str] | None = None) -> int:
                     "up_to_date": sum(
                         1 for offer in offers if offer.update_suggestion == "Up to date"
                     ),
+                    "missing_image": sum(1 for offer in offers if not offer.has_image),
                     "issue_url": issue_url,
                 }
             )

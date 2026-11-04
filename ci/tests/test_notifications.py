@@ -38,6 +38,59 @@ class WecomNotifyTests(unittest.TestCase):
             {"msgtype": "markdown", "markdown": {"content": "检查完成"}},
         )
 
+    def test_send_text_supports_mentions(self) -> None:
+        requests = []
+
+        def post(request, timeout):
+            requests.append(request)
+            return io.BytesIO(b'{"errcode":0}')
+
+        with patch.object(wecom_notify.urllib.request, "urlopen", post):
+            self.assertTrue(
+                wecom_notify.send_text(
+                    "请查看通知",
+                    "https://example.test/hook",
+                    ["tanxiao"],
+                    ["13800000000"],
+                )
+            )
+        self.assertEqual(
+            json.loads(requests[0].data),
+            {
+                "msgtype": "text",
+                "text": {
+                    "content": "请查看通知",
+                    "mentioned_list": ["tanxiao"],
+                    "mentioned_mobile_list": ["13800000000"],
+                },
+            },
+        )
+
+    def test_offer_list_notification_mentions_configured_mobile(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            message = Path(directory) / "message.md"
+            message.write_text("通知内容", encoding="utf-8")
+            with patch.dict(
+                os.environ,
+                {"WECOM_WEBHOOK": "https://example.test/hook"},
+                clear=True,
+            ), patch.object(wecom_notify, "send_markdown", return_value=True) as markdown, patch.object(
+                wecom_notify, "send_text"
+            ) as text:
+                with patch.object(
+                    sys,
+                    "argv",
+                    ["wecom_notify.py", "--markdown-file", str(message), "--offer-list-notify"],
+                ):
+                    self.assertEqual(wecom_notify.main(), 0)
+        markdown.assert_called_once()
+        text.assert_called_once()
+        self.assertEqual(text.call_args.args[0], "Please check issue and update offers")
+        self.assertEqual(
+            text.call_args.kwargs["mentioned_mobile_list"],
+            [wecom_notify.OFFER_LIST_MENTION_MOBILE],
+        )
+
     def test_failed_delivery_does_not_log_webhook(self) -> None:
         output = io.StringIO()
         with (
