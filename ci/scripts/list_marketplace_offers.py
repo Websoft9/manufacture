@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -73,7 +74,7 @@ def _latest_update_time(*values: Any) -> str:
     parsed = [timestamp for value in values if (timestamp := _parse_timestamp(value))]
     if not parsed:
         return ""
-    return max(parsed).strftime("%Y-%m-%d %H:%M UTC")
+    return max(parsed).strftime("%Y-%m-%d")
 
 
 def _first_sentence(value: Any) -> str:
@@ -114,10 +115,10 @@ def _version_suggestion(offer_version: str, target_version: str) -> str:
     target_key = _version_key(target)
     if offer_key is not None and target_key is not None:
         if target_key > offer_key:
-            return f"Update to {target}"
+            return "Need Update"
         if target_key < offer_key:
-            return f"Check target ({target})"
-    return f"Review {offer} -> {target}"
+            return "Check Target"
+    return "Review"
 
 
 def build_target_versions(
@@ -141,7 +142,7 @@ def build_target_versions(
         product_ids = item.get("productID") or {}
         if not isinstance(product_ids, dict):
             continue
-        for platform in ("aliyun", "alibabacloud"):
+        for platform in ("aws", "aliyun", "alibabacloud"):
             codes = product_ids.get(platform) or []
             if not isinstance(codes, list):
                 continue
@@ -170,6 +171,8 @@ def load_target_versions() -> dict[str, str]:
 
 
 def marketplace_product_url(platform: str, code: str) -> str:
+    if not code:
+        return ""
     template = PLATFORM_URL_TEMPLATES.get(platform, "")
     return template.replace("{code}", urllib.parse.quote(code, safe="")) if template else ""
 
@@ -191,14 +194,29 @@ def _error_code(error: Exception) -> str:
 class AwsMarketplaceProvider:
     display_name = "AWS Marketplace AMI products"
     id_label = "Catalog Entity ID"
+    columns = (
+        ("Catalog Entity ID", "product_link"),
+        ("Product title", "title"),
+        ("Visibility", "visibility"),
+        ("Offer Version", "version"),
+        ("Target Version", "target_version"),
+        ("Update Suggestion", "update_suggestion"),
+        ("Update Time", "last_modified"),
+    )
     note = (
-        "Version is the latest public version (or latest version if none is public); "
-        "Last updated is the product entity's `LastModifiedDate`."
+        "Only products with `Visibility=Public` are listed. Version is the latest "
+        "public version; Last updated is the product entity's `LastModifiedDate`."
     )
 
-    def __init__(self, region: str = "us-east-1", client: Any | None = None) -> None:
+    def __init__(
+        self,
+        region: str = "us-east-1",
+        client: Any | None = None,
+        target_versions: dict[str, str] | None = None,
+    ) -> None:
         self.region = region
         self._client = client
+        self.target_versions = target_versions or {}
 
     @property
     def client(self) -> Any:
@@ -222,7 +240,7 @@ class AwsMarketplaceProvider:
                 raise MarketplaceError(permission_hint) from None
             raise MarketplaceError(f"AWS {operation} failed ({code})") from None
 
-    def _describe(self, entity_id: str) -> tuple[str, str]:
+    def _describe(self, entity_id: str) -> tuple[str, str, str]:
         response = self._call(
             "describe_entity",
             "DescribeEntity permission is required to list versions. "
@@ -248,14 +266,23 @@ class AwsMarketplaceProvider:
                 for option in (version.get("DeliveryOptions") or [])
             )
         ]
-        candidates = public_versions or versions
+        candidates = public_versions
         if not candidates:
-            return "", response.get("LastModifiedDate", "")
+            return "", "", _latest_update_time(response.get("LastModifiedDate"))
 
         latest = max(candidates, key=lambda version: version.get("CreationDate") or "")
+        sku = next(
+            (
+                str(option.get("Sku") or "")
+                for option in (latest.get("DeliveryOptions") or [])
+                if option.get("Visibility") == "Public" and option.get("Sku")
+            ),
+            "",
+        )
         return (
             latest.get("VersionTitle") or latest.get("Id") or "",
-            response.get("LastModifiedDate", ""),
+            sku,
+            _latest_update_time(response.get("LastModifiedDate")),
         )
 
     def list_offers(self) -> list[Offer]:
@@ -277,8 +304,10 @@ class AwsMarketplaceProvider:
             )
             for entity in response.get("EntitySummaryList", []):
                 summary = entity.get("AmiProductSummary") or {}
+                if summary.get("Visibility") != "Public":
+                    continue
                 entity_id = entity.get("EntityId", "")
-                version, last_modified = self._describe(entity_id)
+                version, sku, last_modified = self._describe(entity_id)
                 offers.append(
                     Offer(
                         entity_id=entity_id,
@@ -286,6 +315,8 @@ class AwsMarketplaceProvider:
                         visibility=summary.get("Visibility", ""),
                         version=version,
                         last_modified=last_modified,
+                        target_version=self.target_versions.get(sku, ""),
+                        product_url=marketplace_product_url("aws", sku),
                     )
                 )
             token = response.get("NextToken")
@@ -848,46 +879,208 @@ def _summary_path(explicit: Path | None) -> Path | None:
     return Path(configured) if configured else None
 
 
+ALL_PROVIDER_KEYS = ("aws", "aliyun", "alibabacloud")
+CLOUD_LABELS = {
+    "aws": "AWS",
+    "aliyun": "Aliyun China",
+    "alibabacloud": "Alibaba Cloud International",
+}
+
+
+def _provider_default_region(key: str) -> str:
+    return {
+        "aws": "us-east-1",
+        "aliyun": "cn-hangzhou",
+        "alibabacloud": "",
+    }.get(key, "us-east-1")
+
+
+def _build_provider(key: str, region: str | None, target_versions: dict[str, str]) -> MarketplaceProvider:
+    provider_class = PROVIDERS[key]
+    kwargs: dict[str, Any] = {"region": region or _provider_default_region(key)}
+    if key in ALL_PROVIDER_KEYS:
+        kwargs["target_versions"] = target_versions
+    return provider_class(**kwargs)
+
+
+def _scan_time() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _issue_title(key: str, scan_time: str) -> str:
+    return f"Offer list and version - {CLOUD_LABELS.get(key, key)} - {scan_time}"
+
+
+def _issue_body(provider: MarketplaceProvider, offers: list[Offer], markdown: str, scan_time: str) -> str:
+    need_update = sum(1 for offer in offers if offer.update_suggestion == "Need Update")
+    up_to_date = sum(1 for offer in offers if offer.update_suggestion == "Up to date")
+    check_target = sum(1 for offer in offers if offer.update_suggestion == "Check Target")
+    review = sum(1 for offer in offers if offer.update_suggestion == "Review")
+    missing = sum(
+        1
+        for offer in offers
+        if not offer.version or not offer.target_version or offer.version == "未识别"
+    )
+    return "\n".join(
+        [
+            "## Offer list and version",
+            "",
+            f"- Cloud: {provider.display_name}",
+            f"- Scan time: {scan_time}",
+            f"- Products: {len(offers)}",
+            f"- Need Update: {need_update}",
+            f"- Up to date: {up_to_date}",
+            f"- Check Target: {check_target}",
+            f"- Review: {review}",
+            f"- Missing version: {missing}",
+            "",
+            markdown,
+        ]
+    )
+
+
+def _create_github_issue(title: str, body: str) -> str:
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    token = (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
+    if not repository or not token:
+        raise MarketplaceError("GITHUB_REPOSITORY and GITHUB_TOKEN are required to create issues")
+    payload = json.dumps({"title": title, "body": body}, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repository}/issues",
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+    except urllib.error.HTTPError as error:
+        raise MarketplaceError(f"issue creation failed ({error.code})") from None
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        raise MarketplaceError(f"issue creation failed ({type(error).__name__})") from None
+    return str(result.get("html_url") or "")
+
+
+def _notification_markdown(scan_time: str, results: list[dict[str, Any]]) -> str:
+    repository = os.environ.get("GITHUB_REPOSITORY", "")
+    run_url = os.environ.get("RUN_URL", "")
+    lines = [
+        "# Marketplace Offer List",
+        f"> Scan time: {scan_time}",
+        f"> Repository: {repository}",
+    ]
+    for result in results:
+        label = CLOUD_LABELS.get(result["key"], result["key"])
+        if result.get("error"):
+            lines.append(f"> **{label}**: failed - {result['error']}")
+            continue
+        line = (
+            f"> **{label}**: {result['count']} products; "
+            f"Need Update {result['need_update']}; Up to date {result['up_to_date']}"
+        )
+        if result.get("issue_url"):
+            line += f"; [Issue]({result['issue_url']})"
+        lines.append(line)
+    if run_url:
+        lines.extend(["", f"[View workflow run]({run_url})"])
+    return "\n".join(lines) + "\n"
+
+
+def _write_notification(path: Path | None, content: str) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="List marketplace offers and render a GitHub Actions summary."
     )
-    parser.add_argument("--provider", choices=PLATFORMS, default="aws")
+    parser.add_argument("--provider", choices=(*PLATFORMS, "all"), default="all")
     parser.add_argument("--region")
     parser.add_argument("--summary-file", type=Path)
+    parser.add_argument("--create-issue", action="store_true")
+    parser.add_argument("--notification-file", type=Path)
     args = parser.parse_args(argv)
 
-    if args.provider not in PROVIDERS:
+    selected = ALL_PROVIDER_KEYS if args.provider == "all" else (args.provider,)
+    if args.provider != "all" and args.provider not in PROVIDERS:
         print(
             f"::error::{args.provider} offer listing is not implemented yet; "
             f"implemented providers: {', '.join(sorted(PROVIDERS))}"
         )
         return 1
 
-    default_region = {
-        "aliyun": "cn-hangzhou",
-        "alibabacloud": "",
-    }.get(args.provider, "us-east-1")
-    provider_kwargs: dict[str, Any] = {"region": args.region or default_region}
-    if args.provider in {"aliyun", "alibabacloud"}:
-        provider_kwargs["target_versions"] = load_target_versions()
-    provider = PROVIDERS[args.provider](**provider_kwargs)
-    try:
-        offers = provider.list_offers()
-    except MarketplaceError as error:
-        print(f"::error::{error}")
-        return 1
-
-    markdown = render_markdown(provider, offers)
+    scan_time = _scan_time()
+    target_versions = load_target_versions()
     summary = _summary_path(args.summary_file)
     if summary:
         summary.parent.mkdir(parents=True, exist_ok=True)
+    all_markdown: list[str] = []
+    results: list[dict[str, Any]] = []
+    exit_code = 0
+
+    for key in selected:
+        if key not in PROVIDERS:
+            print(
+                f"::error::{key} offer listing is not implemented yet; "
+                f"implemented providers: {', '.join(sorted(PROVIDERS))}"
+            )
+            results.append({"key": key, "error": "not implemented"})
+            exit_code = 1
+            continue
+        try:
+            provider = _build_provider(
+                key,
+                None if args.provider == "all" else args.region,
+                target_versions,
+            )
+            offers = provider.list_offers()
+            markdown = render_markdown(provider, offers)
+            all_markdown.append(markdown)
+            issue_url = ""
+            if args.create_issue:
+                issue_url = _create_github_issue(
+                    _issue_title(key, scan_time),
+                    _issue_body(provider, offers, markdown, scan_time),
+                )
+            results.append(
+                {
+                    "key": key,
+                    "count": len(offers),
+                    "need_update": sum(
+                        1 for offer in offers if offer.update_suggestion == "Need Update"
+                    ),
+                    "up_to_date": sum(
+                        1 for offer in offers if offer.update_suggestion == "Up to date"
+                    ),
+                    "issue_url": issue_url,
+                }
+            )
+            print(
+                f"Listed {len(offers)} {key} offer(s)."
+                + (f" Issue: {issue_url}" if issue_url else ""),
+                file=sys.stderr,
+            )
+        except MarketplaceError as error:
+            print(f"::error::{error}")
+            results.append({"key": key, "error": str(error)})
+            exit_code = 1
+
+    markdown = "\n".join(all_markdown)
+    if summary and markdown:
         with summary.open("a", encoding="utf-8") as file:
             file.write(markdown)
-        print(f"Listed {len(offers)} {args.provider} offer(s). See the workflow summary.", file=sys.stderr)
-    else:
+    elif markdown:
         print(markdown, end="")
-    return 0
+    _write_notification(args.notification_file, _notification_markdown(scan_time, results))
+    return exit_code
 
 
 if __name__ == "__main__":

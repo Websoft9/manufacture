@@ -66,13 +66,13 @@ class FakeClient:
         entity = kwargs["EntityId"]
         if entity == "prod-1":
             return {
-                "LastModifiedDate": "2026-03-02T00:00:00Z",
+                "LastModifiedDate": "2026-03-02",
                 "DetailsDocument": {
                     "Versions": [
                         {
                             "VersionTitle": "1.0",
                             "CreationDate": "2026-01-01T00:00:00Z",
-                            "DeliveryOptions": [{"Visibility": "Public"}],
+                            "DeliveryOptions": [{"Visibility": "Public", "Sku": "sku-1"}],
                         },
                         {
                             "VersionTitle": "2.0",
@@ -82,7 +82,7 @@ class FakeClient:
                         {
                             "VersionTitle": "3.0",
                             "CreationDate": "2026-03-01T00:00:00Z",
-                            "DeliveryOptions": [{"Visibility": "Public"}],
+                            "DeliveryOptions": [{"Visibility": "Public", "Sku": "sku-1"}],
                         },
                     ]
                 },
@@ -109,28 +109,43 @@ class FakeClient:
 class AwsProviderTests(unittest.TestCase):
     def test_lists_versions_and_paginates(self) -> None:
         client = FakeClient()
-        provider = offers.AwsMarketplaceProvider(client=client)
+        provider = offers.AwsMarketplaceProvider(
+            client=client, target_versions={"sku-1": "5.0"}
+        )
 
         result = provider.list_offers()
 
-        self.assertEqual([offer.entity_id for offer in result], ["prod-1", "prod-2", "prod-3"])
+        self.assertEqual([offer.entity_id for offer in result], ["prod-1", "prod-3"])
         by_id = {offer.entity_id: offer for offer in result}
         self.assertEqual(by_id["prod-1"].version, "3.0")
-        self.assertEqual(by_id["prod-1"].last_modified, "2026-03-02T00:00:00Z")
-        self.assertEqual(by_id["prod-2"].version, "1.0")
+        self.assertEqual(by_id["prod-1"].last_modified, "2026-03-02")
         self.assertEqual(by_id["prod-3"].version, "")
+        self.assertEqual(by_id["prod-1"].target_version, "5.0")
+        self.assertEqual(by_id["prod-3"].target_version, "")
         self.assertEqual(client.list_requests[0].get("NextToken"), None)
         self.assertEqual(client.list_requests[1].get("NextToken"), "next")
-        self.assertEqual(len(client.describe_requests), 3)
+        self.assertEqual(len(client.describe_requests), 2)
 
     def test_render_markdown_includes_versions_and_note(self) -> None:
-        provider = offers.AwsMarketplaceProvider(client=FakeClient())
+        provider = offers.AwsMarketplaceProvider(
+            client=FakeClient(), target_versions={"sku-1": "5.0"}
+        )
         markdown = offers.render_markdown(provider, provider.list_offers())
 
-        self.assertIn("| Catalog Entity ID | Product title | Visibility | Version | Last updated |", markdown)
-        self.assertIn("| prod-1 | One | Public | 3.0 | 2026-03-02T00:00:00Z |", markdown)
-        self.assertIn("| prod-3 | Three | Public | - | 2025-11-01T00:00:00Z |", markdown)
-        self.assertIn("Last updated is the product entity's `LastModifiedDate`.", markdown)
+        self.assertIn(
+            "| Catalog Entity ID | Product title | Visibility | Offer Version | Target Version | Update Suggestion | Update Time |",
+            markdown,
+        )
+        self.assertIn(
+            "| [prod-1](https://aws.amazon.com/marketplace/pp?sku=sku-1) | One | Public | "
+            "3.0 | 5.0 | Need Update | 2026-03-02 |",
+            markdown,
+        )
+        self.assertIn(
+            "| prod-3 | Three | Public | - | - | - | 2025-11-01 |",
+            markdown,
+        )
+        self.assertIn("Only products with `Visibility=Public` are listed.", markdown)
 
     def test_describe_permission_error_is_actionable(self) -> None:
         client = FakeClient()
@@ -340,7 +355,7 @@ class AliyunProviderTests(unittest.TestCase):
         )
         self.assertIn(
             "| [cmjj001](https://market.aliyun.com/detail/cmjj001) | Moodle | "
-            "Moodle 5.2.1 on Ubuntu 24.04 | 5.2.1 | 5.3 | Update to 5.3 | 2027-01-15 08:00 UTC |",
+            "Moodle 5.2.1 on Ubuntu 24.04 | 5.2.1 | 5.3 | Need Update | 2027-01-15 |",
             markdown,
         )
         self.assertIn("Only front-end visible image products", markdown)
@@ -499,7 +514,7 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         )
         self.assertIn(
             "| [sgcmjj001](https://marketplace.alibabacloud.com/products/201072001/sgcmjj001.html) "
-            "| Moodle - Preconfigured | Moodle v5.2, preconfigured | 5.2 | 5.4 | Update to 5.4 | 2027-09-03 19:33 UTC |",
+            "| Moodle - Preconfigured | Moodle v5.2, preconfigured | 5.2 | 5.4 | Need Update | 2027-09-03 |",
             markdown,
         )
 
@@ -521,7 +536,7 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn("| [sgcmjj001]", markdown)
-        self.assertIn("| 2026-01-01 00:00 UTC |", markdown)
+        self.assertIn("| 2026-01-01 |", markdown)
 
     def test_update_time_prefers_newer_image_version_timestamp(self) -> None:
         version_opener = lambda request, timeout: AlibabaCloudResponse(
@@ -572,18 +587,25 @@ class AlibabaCloudProviderTests(unittest.TestCase):
 
         markdown = offers.render_markdown(provider, provider.list_offers())
 
-        self.assertIn("| 2027-09-03 19:33 UTC |", markdown)
+        self.assertIn("| 2027-09-03 |", markdown)
         self.assertEqual(calls, 3)
 
     def test_target_version_maps_product_code_to_versions_source(self) -> None:
         mapping = offers.build_target_versions(
             [
-                {"id": "moodle", "type": "app", "productID": {"aliyun": ["cmjj001"]}}
+                {
+                    "id": "moodle",
+                    "type": "app",
+                    "productID": {
+                        "aliyun": ["cmjj001"],
+                        "aws": ["sku-1"],
+                    },
+                }
             ],
             [{"id": "moodle", "version": "5.3"}],
         )
 
-        self.assertEqual(mapping, {"cmjj001": "5.3"})
+        self.assertEqual(mapping, {"cmjj001": "5.3", "sku-1": "5.3"})
 
     def test_alibabacloud_is_registered_and_uses_no_region(self) -> None:
         self.assertIs(
@@ -606,11 +628,51 @@ class SuggestionTests(unittest.TestCase):
         self.assertEqual(offers._first_sentence("No punctuation"), "No punctuation")
 
     def test_update_suggestion_compares_versions(self) -> None:
-        self.assertEqual(offers._version_suggestion("5.2.1", "5.3"), "Update to 5.3")
+        self.assertEqual(offers._version_suggestion("5.2.1", "5.3"), "Need Update")
         self.assertEqual(offers._version_suggestion("v5.3", "5.3"), "Up to date")
-        self.assertEqual(offers._version_suggestion("5.4", "5.3"), "Check target (5.3)")
+        self.assertEqual(offers._version_suggestion("5.4", "5.3"), "Check Target")
         self.assertEqual(offers._version_suggestion("未识别", "5.3"), "-")
         self.assertEqual(offers._version_suggestion("5.2", ""), "-")
+
+
+class IssueAndNotificationTests(unittest.TestCase):
+    def test_issue_title_and_body_include_scan_information(self) -> None:
+        provider = offers.AlibabaCloudMarketplaceProvider()
+        items = [
+            offers.Offer(
+                entity_id="sgcmjj001",
+                title="Moodle",
+                visibility="",
+                version="5.2",
+                last_modified="2026-01-01",
+                target_version="5.3",
+            )
+        ]
+        markdown = offers.render_markdown(provider, items)
+        self.assertEqual(
+            offers._issue_title("alibabacloud", "2026-01-08 10:00 UTC"),
+            "Offer list and version - Alibaba Cloud International - 2026-01-08 10:00 UTC",
+        )
+        body = offers._issue_body(provider, items, markdown, "2026-01-08 10:00 UTC")
+        self.assertIn("- Cloud: Alibaba Cloud Marketplace image products", body)
+        self.assertIn("- Need Update: 1", body)
+        self.assertIn("sgcmjj001", body)
+
+    def test_notification_summarizes_cloud_results(self) -> None:
+        message = offers._notification_markdown(
+            "2026-01-08 10:00 UTC",
+            [
+                {
+                    "key": "aws",
+                    "count": 2,
+                    "need_update": 1,
+                    "up_to_date": 1,
+                    "issue_url": "https://github.com/o/r/issues/1",
+                }
+            ],
+        )
+        self.assertIn("**AWS**: 2 products; Need Update 1; Up to date 1", message)
+        self.assertIn("https://github.com/o/r/issues/1", message)
 
 
 class FakeProvider:
@@ -618,7 +680,7 @@ class FakeProvider:
     id_label = "Offer ID"
     note = "Fake note."
 
-    def __init__(self, region: str) -> None:
+    def __init__(self, region: str, **kwargs) -> None:
         self.region = region
 
     def list_offers(self) -> list[offers.Offer]:
