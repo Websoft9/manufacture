@@ -6,6 +6,10 @@ VERSION_PATTERN = re.compile(
     r"(?<![\w])v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?",
     re.IGNORECASE,
 )
+MARKETPLACE_VERSION_PATTERN = re.compile(
+    r"(?<![\w])v?\d+(?:\.\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?",
+    re.IGNORECASE,
+)
 
 _MODIFIERS = {
     "alibaba",
@@ -96,3 +100,142 @@ def extract_summary_version(summary: str, product_name: str) -> str | None:
         if version:
             return version
     return None
+
+
+_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "by",
+    "for",
+    "from",
+    "hardened",
+    "in",
+    "latest",
+    "minutes",
+    "of",
+    "on",
+    "or",
+    "preconfigured",
+    "preview",
+    "provided",
+    "ready",
+    "the",
+    "to",
+    "version",
+    "with",
+}
+
+_ATTACHED_VERSION_PATTERN = re.compile(
+    r"(?P<name>[A-Za-z][A-Za-z0-9+._-]*?)[ ]?(?P<version>v?\d+(?:\.\d+){0,3})",
+    re.IGNORECASE,
+)
+
+_TITLE_VERSION_PATTERN = re.compile(
+    r"v?\d+(?:\.\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?",
+    re.IGNORECASE,
+)
+
+
+def _title_tokens(*titles: str | None) -> set[str]:
+    """Return lower-case ASCII words and runs from titles, ignoring stopwords."""
+    tokens: set[str] = set()
+    for title in titles:
+        if not title:
+            continue
+        for word in re.findall(r"[A-Za-z]+", title):
+            folded = word.casefold()
+            if len(folded) >= 2 and folded not in _STOPWORDS:
+                tokens.add(folded)
+        for run in re.findall(r"[A-Za-z][A-Za-z0-9+._-]*", title):
+            tokens.add(run.casefold())
+    return tokens
+
+
+def _preceding_tokens(text: str, limit: int = 48) -> set[str]:
+    """Return ASCII words immediately before a version token."""
+    window = text[-limit:]
+    tokens = {
+        word.casefold()
+        for word in re.findall(r"[A-Za-z][A-Za-z0-9+._-]*", window)
+        if len(word) >= 2 and word.casefold() not in _STOPWORDS
+    }
+    return tokens
+
+
+def _first_clause_versions(clause: str) -> list[tuple[int, str, str | None]]:
+    """List (start, version, attached_name) candidates in a clause."""
+    found: list[tuple[int, str, str | None]] = []
+    attached_spans: list[tuple[int, int]] = []
+    for match in _ATTACHED_VERSION_PATTERN.finditer(clause):
+        name = match.group("name")
+        version = match.group("version")
+        # Only treat the digits as attached when they directly follow letters.
+        if match.start("version") != match.end("name"):
+            continue
+        found.append((match.start("name"), version, name))
+        attached_spans.append((match.start("version"), match.end("version")))
+    for match in MARKETPLACE_VERSION_PATTERN.finditer(clause):
+        if any(start <= match.start() < end for start, end in attached_spans):
+            continue
+        found.append((match.start(), match.group(0), None))
+    found.sort(key=lambda item: item[0])
+    return found
+
+
+def _version_from_title(title: str) -> str | None:
+    for match in _TITLE_VERSION_PATTERN.finditer(title):
+        value = match.group(0)
+        start = match.start()
+        if start == 0:
+            continue
+        attached = not title[start - 1].isspace()
+        if attached:
+            if "." not in value or not title[start - 1].isalpha():
+                continue
+            return value.lstrip("vV")
+        word = re.search(r"[A-Za-z][A-Za-z0-9+._-]*\s*$", title[:start])
+        if word and word.group(0).strip().casefold() not in _STOPWORDS:
+            return value.lstrip("vV")
+    return None
+
+
+def extract_marketplace_version(
+    summary: str,
+    product_title: str,
+    app_name: str | None = None,
+) -> str | None:
+    """Extract a marketplace app version from the first summary clause.
+
+    Marketplace titles follow `<trademark> <description>` and the summary's first
+    comma-delimited clause usually starts with `<trademark> <version>`. Match a
+    version in that clause when the text just before it shares a word with the
+    title/app name. If that fails, fall back to an explicit version in the title
+    itself, and only then to an unanchored `vN`/dotted version in the clause.
+    """
+    first_clause = re.split(r"[,，]", summary, maxsplit=1)[0].strip()
+    title_tokens = _title_tokens(product_title, app_name)
+
+    if first_clause:
+        for start, version, attached_name in _first_clause_versions(first_clause):
+            if attached_name:
+                # A digit embedded in a trademark (TYPO3, Neo4j, Websoft9) is not
+                # a version: skip when the whole run already appears in the title.
+                run = re.match(r"[A-Za-z][A-Za-z0-9+._-]*", first_clause[start:])
+                run_text = run.group(0) if run else ""
+                if run_text.casefold() in title_tokens:
+                    continue
+                stem = re.sub(r"v?\d+$", "", attached_name, flags=re.IGNORECASE)
+                if stem.casefold() in title_tokens:
+                    return version.lstrip("vV")
+                continue
+            if _blocked_by_context(first_clause[:start]):
+                continue
+            if _preceding_tokens(first_clause[:start]) & title_tokens:
+                return version.lstrip("vV")
+
+        for _, version, _ in _first_clause_versions(first_clause):
+            if version.casefold().startswith("v") or "." in version:
+                return version.lstrip("vV")
+
+    return _version_from_title(product_title)

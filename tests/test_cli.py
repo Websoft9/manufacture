@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 from cli.cli import cli  # noqa: E402
 from cli.marketplace import END_MARKER, START_MARKER  # noqa: E402
 from cli.commands import versions as versions_module  # noqa: E402
-from cli.versioning import extract_summary_version  # noqa: E402
+from cli.versioning import extract_marketplace_version, extract_summary_version  # noqa: E402
 
 
 class ListCommandTests(unittest.TestCase):
@@ -186,6 +186,37 @@ class VersionsCommandTests(unittest.TestCase):
             extract_summary_version("Moodle for JavaScript 5.2", "Moodle"),
             "5.2",
         )
+
+    def test_extract_marketplace_version_from_first_comma_clause(self) -> None:
+        cases = [
+            ("Moodle v5.2, preconfigured & hardened", "Moodle - Preconfigured", "Moodle", "5.2"),
+            ("WordPress 7.1 with Varnish, Redis for static performance", "WordPress - Ready", "WordPress", "7.1"),
+            ("ONLYOFFICE Docs CE v9, preconfigured", "ONLYOFFICE Docs - Ready", "ONLYOFFICE Docs", "9"),
+            ("n8n v2.38, preconfigured & hardened", "Workflow Automation - Ready", "n8n", "2.38"),
+            ("WordPress 7.1 镜像，内置管理面板", "WordPress 企业建站平台", "WordPress", "7.1"),
+            ("由 Websoft9 提供的 Oracle Linux 7.9 桌面环境", "Oracle Linux 7.9 Desktop", "Oracle Linux", "7.9"),
+            ("Moodle 最新版, 提供运维支持", "Moodle - Ready", "Moodle", None),
+            ("Moodle v5.2, Ubuntu 24.04", "Moodle - Ready", "Moodle", "5.2"),
+            # Digits embedded in the trademark are not versions.
+            ("TYPO3 v13.4 preconfigured & hardened", "TYPO3 - Ready", "TYPO3", "13.4"),
+            ("Neo4j v2026.07 preconfigured", "Neo4j - Ready", "Neo4j", "2026.07"),
+            ("Websoft9 platform for hosting", "Websoft9 Apps Hosting Platform", "Websoft9", None),
+            # Trademark differs between the marketing title and the summary.
+            ("开机即用 ERPNext 16 镜像", "ERPNext 开源企业 ERP/CRM", "ERPNext", "16"),
+            ("开机即用 Odoo19/18/17/16 镜像", "Odoo 开源企业 ERP/CRM", "Odoo", "19"),
+            ("开机即用 n8n v2.38 镜像", "Workflow Automation 平台", "Workflow Automation", "2.38"),
+            # Fall back to a version written in the title.
+            ("Pre-configured image", "Cloud Native Database for MySQL 5.7", None, "5.7"),
+            ("Pre-configured image", "PHP 7.4 Runtime on CentOS (LAMP)", None, "7.4"),
+            ("Pre-configured image", "Canvas 在线学习平台", None, None),
+        ]
+
+        for summary, title, app_name, expected in cases:
+            with self.subTest(summary=summary, title=title):
+                self.assertEqual(
+                    extract_marketplace_version(summary, title, app_name),
+                    expected,
+                )
 
 
 if __name__ == "__main__":

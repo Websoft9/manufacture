@@ -419,14 +419,14 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         responses = [
             self._response(
                 [
-                    self._product("sgcmjj001", "Moodle - Preconfigured", "Moodle v5.2"),
+                    self._product("sgcmjj001", "Moodle - Preconfigured", "Moodle v5.2, preconfigured"),
                     self._product("other-supplier", "Other", "Other v1.0", company="Other"),
                     self._product("websoft9-app", "App", "App v2.0", delivery="SaaS"),
                 ],
                 2,
             ),
             self._response(
-                [self._product("sgcmjj002", "Gitea - Preconfigured", "Gitea v1.27")],
+                [self._product("sgcmjj002", "Gitea - Preconfigured", "Gitea v1.27, preconfigured")],
                 2,
             ),
         ]
@@ -452,7 +452,7 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         provider = offers.AlibabaCloudMarketplaceProvider(
             opener=lambda request, timeout: AlibabaCloudResponse(
                 self._response(
-                    [self._product("sgcmjj001", "Moodle", "Moodle v5.2")],
+                    [self._product("sgcmjj001", "Moodle", "Moodle v5.2, preconfigured")],
                     1,
                 )
             )

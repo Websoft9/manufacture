@@ -45,12 +45,22 @@ class OfferUpdateTests(unittest.TestCase):
                       "product": self.product, "baseSourceHash": self.bundle["sourceHash"]}
         flow.replan(self.state, self.client)
 
+    def test_update_issue_detected_after_title_edit(self):
+        chinese = "### 应用\n\nodoo\n\n### 目标平台\n\naws\n\n### 更新目标\n\nFix"
+        english = "### Application\n\nodoo\n\n### Target platform\n\naws\n\n### Update goal\n\nFix"
+        self.assertTrue(flow.is_update_issue("update: odoo on aws", chinese))
+        self.assertTrue(flow.is_update_issue("update: odoo on aws", english))
+        self.assertTrue(flow.is_update_issue("[Marketplace Offer Update] Odoo", ""))
+        self.assertFalse(flow.is_update_issue("unrelated bug", "some text"))
+
     def test_issue_form_and_comment_commands(self):
         self.assertEqual(flow.request_fields("### 应用\n\nodoo\n\n### 目标平台\n\naws\n\n### 更新目标\n\nFix wording"),
-                         {"key": "odoo", "platform": "aws"})
+                         {"key": "odoo", "platform": "aws", "goal": "Fix wording"})
+        self.assertEqual(flow.request_fields("### Application\n\nodoo\n\n### Target platform\n\naws\n\n### Update goal\n\nFix"),
+                         {"key": "odoo", "platform": "aws", "goal": "Fix"})
         self.assertEqual(flow.parse_command("/offer optimize 更简洁"), ("optimize", "更简洁"))
         with self.assertRaises(ValueError):
-            flow.request_fields("### 应用\n../../private\n### 目标平台\naws")
+            flow.request_fields("### Application\n../../private\n### Target platform\naws")
         with self.assertRaises(ValueError):
             flow.parse_command("/offer publish-other")
 
@@ -71,10 +81,31 @@ class OfferUpdateTests(unittest.TestCase):
         self.state["product"] = flow.patch_product(self.product, {"summary": "Updated application wording."})
         flow.replan(self.state, self.client)
         self.assertIsNone(self.state["approval"])
+        self.assertTrue(self.state["copyEdited"])
         self.assertNotEqual(self.state["draftHash"], token)
         rendered = self.state["bundle"]["content"]
         self.assertEqual(rendered["SupportDescription"], self.bundle["content"]["SupportDescription"])
         self.assertIn(self.product["listings"]["aws"]["commercial"]["billingSummary"], rendered["LongDescription"])
+
+    def test_edited_copy_requires_explicit_fact_confirmation(self):
+        self.state["product"] = flow.patch_product(self.product, {"summary": "New factual claim."})
+        flow.replan(self.state, self.client)
+        self.assertTrue(self.state["copyEdited"])
+        with self.assertRaisesRegex(ValueError, "confirm"):
+            flow.approve(self.state, self.state["draftHash"], "reviewer", edited=True)
+        flow.approve(self.state, f"{self.state['draftHash']} confirm", "reviewer", edited=True)
+        self.assertTrue(self.state["approval"]["copyConfirmed"])
+
+    def test_state_transition_recovers_from_terminal_change_sets(self):
+        self.state["changeSetId"] = "cs-test"
+        self.state["status"] = "需处理：回读不一致"
+        flow.check_state_transition(self.state, "prepare")
+        flow.check_state_transition(self.state, "status")
+        with self.assertRaises(ValueError):
+            flow.check_state_transition(self.state, "publish")
+        self.state["status"] = "发布中"
+        with self.assertRaisesRegex(ValueError, "处理中"):
+            flow.check_state_transition(self.state, "prepare")
 
     def test_approval_and_publication_are_separate_and_hash_bound(self):
         save = Mock()
@@ -133,12 +164,18 @@ class OfferUpdateTests(unittest.TestCase):
 
     def test_ai_cannot_return_fixed_fields_and_has_no_aws_environment(self):
         result = Mock(returncode=0, stdout=json.dumps({"includedComponents": ["invented"]}))
-        with patch.object(flow.subprocess, "run", return_value=result) as run:
+        with patch.dict(os.environ, {"COPILOT_GITHUB_TOKEN": "copilot-token"}), \
+             patch.object(flow.subprocess, "run", return_value=result) as run:
             with self.assertRaises(ValueError):
                 flow.optimize(self.product, "Improve")
         self.assertNotIn("GH_TOKEN", run.call_args.kwargs["env"])
         self.assertNotIn("AWS_ACCESS_KEY_ID", run.call_args.kwargs["env"])
         self.assertIn("--deny-tool=shell", run.call_args.args[0])
+
+    def test_optimize_requires_dedicated_copilot_token(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "COPILOT_CLI_TOKEN"):
+                flow.optimize(self.product, "Improve")
 
     def test_summary_escapes_untrusted_content(self):
         self.state["plan"]["diff"]["ProductTitle"]["before"] = "</pre><script>alert(1)</script>@everyone"
@@ -160,7 +197,9 @@ class OfferUpdateTests(unittest.TestCase):
                  patch.object(flow.offer, "aws_client", return_value=self.client):
                 for action in ["edit", "approve", "publish", "status"]:
                     context["action"] = action
-                    if action in {"approve", "publish"}:
+                    if action == "approve":
+                        context["argument"] = current["draftHash"] + " confirm"
+                    elif action == "publish":
                         context["argument"] = current["draftHash"]
                     self.client.start_change_set.return_value = {"ChangeSetId": "cs-test"}
                     self.client.describe_change_set.return_value = {"Status": "APPLYING"}
@@ -172,19 +211,67 @@ class OfferUpdateTests(unittest.TestCase):
                 self.assertEqual(current["product"]["application"]["summary"], "Updated application summary.")
                 self.client.start_change_set.assert_called_once()
 
-    def test_gate_checks_current_operator_permission_before_cloud_access(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory)
-            (path / "event.json").write_text(json.dumps({"issue": {"number": 1}}))
-            issue = {"title": "[Update app] Odoo", "state": "open", "body": "### 应用\nodoo\n### 目标平台\naws"}
-            with patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(path / "event.json"),
-                 "GITHUB_REPOSITORY": "example/repo", "GITHUB_ACTOR": "visitor",
-                 "GITHUB_TRIGGERING_ACTOR": "visitor", "OFFER_ISSUE": "", "OFFER_COMMAND": ""}), \
-                 patch.object(flow, "gh", side_effect=[issue, {"permission": "read"}]), \
-                 patch.object(flow.offer, "aws_client") as aws:
-                with self.assertRaisesRegex(ValueError, "write"):
-                    flow.gate()
-                aws.assert_not_called()
+    def run_gate(self, event, issue, command=""):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name)
+        (path / "event.json").write_text(json.dumps(event), encoding="utf-8")
+        (path / "output").write_text("", encoding="utf-8")
+        env = {"GITHUB_EVENT_PATH": str(path / "event.json"), "GITHUB_REPOSITORY": "example/repo",
+               "GITHUB_ACTOR": "actor", "GITHUB_TRIGGERING_ACTOR": "actor",
+               "OFFER_ISSUE": "", "OFFER_COMMAND": command, "GITHUB_OUTPUT": str(path / "output")}
+        with patch.dict(os.environ, env), \
+             patch.object(flow, "workdir", return_value=path), \
+             patch.object(flow, "gh", return_value=issue):
+            flow.gate()
+        return path
+
+    def test_gate_denies_non_members_silently(self):
+        event = {"issue": {"number": 1, "author_association": "CONTRIBUTOR"}}
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name)
+        (path / "event.json").write_text(json.dumps(event), encoding="utf-8")
+        with patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(path / "event.json"),
+             "GITHUB_REPOSITORY": "example/repo", "GITHUB_ACTOR": "visitor",
+             "GITHUB_TRIGGERING_ACTOR": "visitor", "OFFER_ISSUE": "", "OFFER_COMMAND": ""}), \
+             patch.object(flow, "workdir", return_value=path), \
+             patch.object(flow, "gh") as api:
+            with self.assertRaisesRegex(ValueError, "成员或协作者"):
+                flow.gate()
+            api.assert_not_called()
+        self.assertFalse((path / "context.json").exists())
+
+    def test_gate_reports_actionable_error_for_members(self):
+        event = {"issue": {"number": 1, "author_association": "MEMBER"}}
+        issue = {"title": "[Marketplace Offer Update] Odoo", "state": "open", "body": "### Application\nodoo"}
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name)
+        (path / "event.json").write_text(json.dumps(event), encoding="utf-8")
+        (path / "output").write_text("", encoding="utf-8")
+        with patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(path / "event.json"),
+             "GITHUB_REPOSITORY": "example/repo", "GITHUB_ACTOR": "actor",
+             "GITHUB_TRIGGERING_ACTOR": "actor", "OFFER_ISSUE": "", "OFFER_COMMAND": "",
+             "GITHUB_OUTPUT": str(path / "output")}), \
+             patch.object(flow, "workdir", return_value=path), \
+             patch.object(flow, "gh", return_value=issue):
+            with self.assertRaisesRegex(ValueError, "平台"):
+                flow.gate()
+        saved = json.loads((path / "context.json").read_text())
+        self.assertIn("平台", saved["error"])
+
+    def test_gate_emits_cloud_and_optimize_flags(self):
+        event = {"issue": {"number": 1, "author_association": "MEMBER"}}
+        issue = {"title": "[Marketplace Offer Update] Odoo", "state": "open",
+                 "body": "### Application\nodoo\n### Target platform\naws\n### Update goal\nShorten copy"}
+        path = self.run_gate(event, issue, command="/offer optimize")
+        output = (path / "output").read_text()
+        self.assertIn("cloud=true", output)
+        self.assertIn("optimize=true", output)
+        saved = json.loads((path / "context.json").read_text())
+        self.assertEqual(saved["goal"], "Shorten copy")
+        self.assertEqual(saved["request"], {"key": "odoo", "platform": "aws"})
 
     def test_rejects_artifact_pointer_from_other_workflow(self):
         context = {"repo": "example/repo", "issue": 1}

@@ -20,7 +20,7 @@ from typing import Any, Protocol
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from cli.versioning import extract_summary_version
+from cli.versioning import extract_marketplace_version
 
 
 @dataclass(frozen=True)
@@ -358,7 +358,7 @@ class AliyunMarketplaceProvider:
                         entity_id=code,
                         title=title,
                         visibility="",
-                        version=extract_summary_version(summary, title) or "未识别",
+                        version=extract_marketplace_version(summary, title) or "未识别",
                         last_modified="",
                         supplier=supplier,
                         delivery_way=str(product.get("DeliveryWay") or ""),
@@ -462,9 +462,7 @@ class AlibabaCloudMarketplaceProvider:
                 title = str(product.get("title") or "")
                 description = str(product.get("describe") or "")
                 app_name = title.split(" - ", maxsplit=1)[0]
-                version = extract_summary_version(description, app_name) or "未识别"
-                if version.startswith(("v", "V")):
-                    version = version[1:]
+                version = extract_marketplace_version(description, title, app_name) or "未识别"
                 offers.append(
                     Offer(
                         entity_id=str(product.get("code") or ""),
