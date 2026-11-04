@@ -246,6 +246,7 @@ class AliyunProviderTests(unittest.TestCase):
             client=client,
             request_factory=FakeAliyunRequest,
             store_opener=aliyun_store_opener(["cmjj001"]),
+            detail_lookup=lambda code: {"GmtModified": 1_800_000_000_000},
         )
 
         result = provider.list_offers()
@@ -289,6 +290,7 @@ class AliyunProviderTests(unittest.TestCase):
             client=FakeAliyunClient(),
             request_factory=FakeAliyunRequest,
             store_opener=opener,
+            detail_lookup=lambda code: {"GmtModified": 1_800_000_000_000},
         )
 
         result = provider.list_offers()
@@ -326,15 +328,21 @@ class AliyunProviderTests(unittest.TestCase):
             client=FakeAliyunClient(),
             request_factory=FakeAliyunRequest,
             store_opener=aliyun_store_opener(["cmjj001"]),
+            target_versions={"cmjj001": "5.3"},
+            detail_lookup=lambda code: {"GmtModified": 1_800_000_000_000},
         )
 
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn(
-            "| Product code | Product title | Application version | Delivery way |",
+            "| Product code | Product title | Short Description | Offer Version | Target Version | Update Suggestion | Update Time |",
             markdown,
         )
-        self.assertIn("| cmjj001 | Moodle | 5.2.1 | 镜像 |", markdown)
+        self.assertIn(
+            "| [cmjj001](https://market.aliyun.com/detail/cmjj001) | Moodle | "
+            "Moodle 5.2.1 on Ubuntu 24.04 | 5.2.1 | 5.3 | Update to 5.3 | 2027-01-15 08:00 UTC |",
+            markdown,
+        )
         self.assertIn("Only front-end visible image products", markdown)
         self.assertIn("长沙网久软件有限公司", markdown)
 
@@ -355,11 +363,17 @@ class AliyunProviderTests(unittest.TestCase):
                     last_modified="",
                     supplier=provider.supplier,
                     delivery_way="镜像",
+                    target_version="5.3",
+                    product_url="https://market.aliyun.com/detail/cmjj002",
                 )
             ],
         )
 
-        self.assertIn("| cmjj002 | Moodle | 未识别 | 镜像 |", markdown)
+        self.assertIn(
+            "| [cmjj002](https://market.aliyun.com/detail/cmjj002) | Moodle | - | "
+            "未识别 | 5.3 | - | - |",
+            markdown,
+        )
 
     def test_aliyun_is_registered_as_provider(self) -> None:
         self.assertIs(offers.PROVIDERS["aliyun"], offers.AliyunMarketplaceProvider)
@@ -371,7 +385,7 @@ class AliyunProviderTests(unittest.TestCase):
     def test_cli_uses_aliyun_region_by_default(self) -> None:
         provider = AliyunProviderSpy()
 
-        def provider_factory(region: str):
+        def provider_factory(region: str, **kwargs):
             provider.region = region
             return provider
 
@@ -415,6 +429,18 @@ class AlibabaCloudProviderTests(unittest.TestCase):
             }
         }
 
+    def _detail(
+        self,
+        code: str,
+        *,
+        latest_version: str = "v5.3",
+        last_updated: int = 1_800_000_000_000,
+    ) -> dict:
+        return {
+            "latestVersion": latest_version,
+            "lastUpdated": last_updated,
+        }
+
     def test_lists_paginated_websoft9_image_products(self) -> None:
         responses = [
             self._response(
@@ -436,7 +462,11 @@ class AlibabaCloudProviderTests(unittest.TestCase):
             requests.append((request, timeout))
             return AlibabaCloudResponse(responses.pop(0))
 
-        provider = offers.AlibabaCloudMarketplaceProvider(opener=fake_open)
+        provider = offers.AlibabaCloudMarketplaceProvider(
+            opener=fake_open,
+            detail_lookup=lambda code: self._detail(code),
+            version_updates_lookup=lambda code: [],
+        )
         result = provider.list_offers()
 
         self.assertEqual([offer.entity_id for offer in result], ["sgcmjj001", "sgcmjj002"])
@@ -452,19 +482,108 @@ class AlibabaCloudProviderTests(unittest.TestCase):
         provider = offers.AlibabaCloudMarketplaceProvider(
             opener=lambda request, timeout: AlibabaCloudResponse(
                 self._response(
-                    [self._product("sgcmjj001", "Moodle", "Moodle v5.2, preconfigured")],
+                    [self._product("sgcmjj001", "Moodle - Preconfigured", "Moodle v5.2, preconfigured")],
                     1,
                 )
-            )
+            ),
+            detail_lookup=lambda code: self._detail(code),
+            version_updates_lookup=lambda code: [1_820_000_000_000],
+            target_versions={"sgcmjj001": "5.4"},
         )
 
         markdown = offers.render_markdown(provider, provider.list_offers())
 
         self.assertIn(
-            "| Product code | Product title | Provider | Product type | Application version |",
+            "| Product code | Product title | Short Description | Offer Version | Target Version | Update Suggestion | Update Time |",
             markdown,
         )
-        self.assertIn("| sgcmjj001 | Moodle | Websoft9 | Image | 5.2 |", markdown)
+        self.assertIn(
+            "| [sgcmjj001](https://marketplace.alibabacloud.com/products/201072001/sgcmjj001.html) "
+            "| Moodle - Preconfigured | Moodle v5.2, preconfigured | 5.2 | 5.4 | Update to 5.4 | 2027-09-03 19:33 UTC |",
+            markdown,
+        )
+
+    def test_update_time_uses_newer_version_timestamp(self) -> None:
+        provider = offers.AlibabaCloudMarketplaceProvider(
+            opener=lambda request, timeout: AlibabaCloudResponse(
+                self._response(
+                    [self._product("sgcmjj001", "Moodle", "Moodle v5.2, preconfigured")],
+                    1,
+                )
+            ),
+            detail_lookup=lambda code: {
+                "latestVersion": "v5.2",
+                "lastUpdated": "2026-01-01T00:00:00Z",
+            },
+            version_updates_lookup=lambda code: [],
+        )
+
+        markdown = offers.render_markdown(provider, provider.list_offers())
+
+        self.assertIn("| [sgcmjj001]", markdown)
+        self.assertIn("| 2026-01-01 00:00 UTC |", markdown)
+
+    def test_update_time_prefers_newer_image_version_timestamp(self) -> None:
+        version_opener = lambda request, timeout: AlibabaCloudResponse(
+            json.dumps(
+                {
+                    "success": True,
+                    "result": {
+                        "versionList": [
+                            {"versionName": "v5.3", "updateTime": 1_820_000_000_000}
+                        ]
+                    },
+                }
+            ).encode()
+        )
+        calls = 0
+
+        def opener(request, timeout):
+            nonlocal calls
+            calls += 1
+            if "queryImageVersionInfo.json" in request.full_url:
+                return version_opener(request, timeout)
+            if "commodityInfo.json" in request.full_url:
+                return AlibabaCloudResponse(
+                    json.dumps(
+                        {
+                            "success": True,
+                            "result": {
+                                "product": {
+                                    "commodityInfo": {
+                                        "latestVersion": "v5.3",
+                                        "lastUpdated": "2026-01-01T00:00:00Z",
+                                    }
+                                }
+                            },
+                        }
+                    ).encode()
+                )
+            return AlibabaCloudResponse(
+                self._response(
+                    [self._product("sgcmjj001", "Moodle", "Moodle v5.3, preconfigured")],
+                    1,
+                )
+            )
+
+        provider = offers.AlibabaCloudMarketplaceProvider(
+            opener=opener,
+        )
+
+        markdown = offers.render_markdown(provider, provider.list_offers())
+
+        self.assertIn("| 2027-09-03 19:33 UTC |", markdown)
+        self.assertEqual(calls, 3)
+
+    def test_target_version_maps_product_code_to_versions_source(self) -> None:
+        mapping = offers.build_target_versions(
+            [
+                {"id": "moodle", "type": "app", "productID": {"aliyun": ["cmjj001"]}}
+            ],
+            [{"id": "moodle", "version": "5.3"}],
+        )
+
+        self.assertEqual(mapping, {"cmjj001": "5.3"})
 
     def test_alibabacloud_is_registered_and_uses_no_region(self) -> None:
         self.assertIs(
@@ -472,6 +591,26 @@ class AlibabaCloudProviderTests(unittest.TestCase):
             offers.AlibabaCloudMarketplaceProvider,
         )
         self.assertEqual(offers.AlibabaCloudMarketplaceProvider().region, "")
+
+
+class SuggestionTests(unittest.TestCase):
+    def test_short_description_uses_first_sentence(self) -> None:
+        self.assertEqual(
+            offers._first_sentence("Moodle 5.2. First sentence. More text."),
+            "Moodle 5.2",
+        )
+        self.assertEqual(
+            offers._first_sentence("Moodle 5.2。第二句"),
+            "Moodle 5.2",
+        )
+        self.assertEqual(offers._first_sentence("No punctuation"), "No punctuation")
+
+    def test_update_suggestion_compares_versions(self) -> None:
+        self.assertEqual(offers._version_suggestion("5.2.1", "5.3"), "Update to 5.3")
+        self.assertEqual(offers._version_suggestion("v5.3", "5.3"), "Up to date")
+        self.assertEqual(offers._version_suggestion("5.4", "5.3"), "Check target (5.3)")
+        self.assertEqual(offers._version_suggestion("未识别", "5.3"), "-")
+        self.assertEqual(offers._version_suggestion("5.2", ""), "-")
 
 
 class FakeProvider:

@@ -16,6 +16,7 @@ class ConfigTests(unittest.TestCase):
         config = app_list.CONFIG
         self.assertTrue(config["sources"]["offer"].startswith("https://"))
         self.assertTrue(config["sources"]["catalog"].startswith("https://"))
+        self.assertTrue(config["sources"]["versions"].startswith("https://"))
 
         product_platforms = tuple(
             item["key"] for item in config["platforms"] if item.get("urlTemplate")

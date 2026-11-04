@@ -32,6 +32,7 @@ CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 SOURCES = CONFIG["sources"]
 OFFER_URL = os.environ.get("MK_OFFER_URL", SOURCES["offer"])
 CATALOG_URL = os.environ.get("MK_CATALOG_URL", SOURCES["catalog"])
+VERSIONS_URL = os.environ.get("MK_VERSIONS_URL", SOURCES["versions"])
 
 ALL_PLATFORM_CONFIGS = tuple(CONFIG["platforms"])
 PLATFORM_CONFIGS = tuple(

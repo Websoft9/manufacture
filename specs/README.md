@@ -10,6 +10,7 @@
 - Reusable automation scripts live in the root `ci/` directory.
 - Business commands use the `mk` CLI in `cli/`, separate from development `make` targets; `make cli` creates `.venv`, installs the CLI, and enters the `mk` command shell.
 - To list marketplace product versions from cloud APIs, see [`marketplace-versions.md`](marketplace-versions.md). The initial implementation supports Aliyun China.
+- Marketplace title/summary version extraction rules are in [`marketplace-version-extraction.md`](marketplace-version-extraction.md).
 - Shared marketplace sources, platform URL templates, Websoft9 store homepages, and code routing live in `config/marketplace.json`; both `mk` and the Astro site read this file.
 - The static Marketplace dashboard lives in `site/` (Astro): `/` is the overview, `/apps` is the application list, and `/apps/<key>` is the application detail page; pages read the marketplace data sources at build time.
 - Application detail pages combine `product_en.json` with `data/app-metadata.json` (use cases and keywords); regenerate that file with the [`app-metadata`](../skills/app-metadata/SKILL.md) skill.
