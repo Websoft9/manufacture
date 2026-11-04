@@ -56,12 +56,37 @@ jobs:
           aws-region: us-east-1
           role-session-name: MarketplaceOfferList-${{ github.run_id }}
 
+      - name: Check Aliyun role configuration
+        if: inputs.platform == 'aliyun'
+        env:
+          ALIYUN_ROLE_ARN: ${{ vars.ALIYUN_ROLE_ARN }}
+          ALIYUN_OIDC_PROVIDER_ARN: ${{ vars.ALIYUN_OIDC_PROVIDER_ARN }}
+        run: |
+          if [[ -z "$ALIYUN_ROLE_ARN" || -z "$ALIYUN_OIDC_PROVIDER_ARN" ]]; then
+            echo "::error::Configure ALIYUN_ROLE_ARN and ALIYUN_OIDC_PROVIDER_ARN as GitHub Actions variables."
+            exit 1
+          fi
+          if [[ ! "$ALIYUN_ROLE_ARN" =~ ^acs:ram::([0-9]{12,20}):role/[^/]+$ ]]; then
+            echo "::error::ALIYUN_ROLE_ARN must be a RAM role ARN (acs:ram::<account-id>:role/<role-name>)."
+            exit 1
+          fi
+          role_account_id="${BASH_REMATCH[1]}"
+          if [[ ! "$ALIYUN_OIDC_PROVIDER_ARN" =~ ^acs:ram::([0-9]{12,20}):oidc-provider/[^/]+$ ]]; then
+            echo "::error::ALIYUN_OIDC_PROVIDER_ARN must be an OIDC provider ARN (acs:ram::<account-id>:oidc-provider/<provider-name>)."
+            exit 1
+          fi
+          provider_account_id="${BASH_REMATCH[1]}"
+          if [[ "$role_account_id" != "$provider_account_id" ]]; then
+            echo "::error::The Aliyun RAM role and OIDC provider ARNs must belong to the same account."
+            exit 1
+          fi
+
       - name: Configure Aliyun credentials with GitHub OIDC
         if: inputs.platform == 'aliyun'
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
         with:
-          role-to-assume: acs:ram::1904996544835414:role/Github-Action-Updater-Marketplace
-          oidc-provider-arn: acs:ram::1904996544835414:oidc-provider/github-actions-marketplace
+          role-to-assume: ${{ vars.ALIYUN_ROLE_ARN }}
+          oidc-provider-arn: ${{ vars.ALIYUN_OIDC_PROVIDER_ARN }}
           role-session-name: MarketplaceOfferList-${{ github.run_id }}
           audience: sts.aliyuncs.com
 
