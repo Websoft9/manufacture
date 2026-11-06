@@ -105,6 +105,9 @@ export interface CatalogProduct {
   overview?: string;
   description?: string;
   websiteurl?: string;
+  keywords?: string[] | string;
+  usecases?: string[] | string;
+  useCases?: string[] | string;
   distribution?: Array<{ key?: string; value?: string[] }>;
   logo?: { imageurl?: string };
   screenshots?: Array<{ id?: string; key?: string; value?: string }>;
@@ -112,17 +115,6 @@ export interface CatalogProduct {
   relatedAppsCollection?: {
     items?: Array<{ key?: string; trademark?: string }>;
   };
-}
-
-export interface AppMetadata {
-  key: string;
-  useCases: string;
-  keywords: string[];
-}
-
-interface AppMetadataFile {
-  schemaVersion?: number;
-  items?: AppMetadata[];
 }
 
 function findRepoFile(start: string, relativePath: string): string {
@@ -141,9 +133,6 @@ function findRepoFile(start: string, relativePath: string): string {
 const CONFIG_PATH =
   process.env.MK_CONFIG_PATH ??
   findRepoFile(process.cwd(), join("config", "marketplace.json"));
-const APP_METADATA_PATH =
-  process.env.MK_APP_METADATA_PATH ??
-  findRepoFile(process.cwd(), join("data", "app-metadata.json"));
 const CONFIG = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as MarketplaceConfig;
 
 function isProductPlatform(platform: PlatformConfig): platform is ProductPlatformConfig {
@@ -369,68 +358,4 @@ export async function loadCatalogProducts(): Promise<CatalogProduct[]> {
     throw new Error("The product catalog must return a JSON array");
   }
   return catalog.filter((product) => Boolean(product.key));
-}
-
-const MAX_KEYWORDS = 15;
-const MAX_KEYWORD_LENGTH = 50;
-
-export function validateAppMetadata(items: AppMetadata[]): void {
-  const seen = new Set<string>();
-  for (const item of items) {
-    if (typeof item.key !== "string" || !item.key.trim()) {
-      throw new Error("App metadata item is missing key");
-    }
-    if (seen.has(item.key)) {
-      throw new Error(`Duplicate app metadata key: ${item.key}`);
-    }
-    seen.add(item.key);
-    if (typeof item.useCases !== "string" || !item.useCases.trim()) {
-      throw new Error(`App metadata ${item.key} is missing useCases`);
-    }
-    if (
-      !Array.isArray(item.keywords) ||
-      item.keywords.length === 0 ||
-      item.keywords.length > MAX_KEYWORDS
-    ) {
-      throw new Error(
-        `App metadata ${item.key} must have 1-${MAX_KEYWORDS} keywords`,
-      );
-    }
-    const seenKeywords = new Set<string>();
-    for (const keyword of item.keywords) {
-      if (
-        typeof keyword !== "string" ||
-        !keyword.trim() ||
-        keyword.length > MAX_KEYWORD_LENGTH
-      ) {
-        throw new Error(
-          `App metadata ${item.key} has an invalid keyword: ${keyword}`,
-        );
-      }
-      const normalized = keyword.trim().toLowerCase();
-      if (seenKeywords.has(normalized)) {
-        throw new Error(
-          `App metadata ${item.key} has a duplicate keyword: ${keyword}`,
-        );
-      }
-      seenKeywords.add(normalized);
-    }
-  }
-}
-
-export function loadAppMetadata(): AppMetadata[] {
-  const file = JSON.parse(
-    readFileSync(APP_METADATA_PATH, "utf8"),
-  ) as AppMetadataFile;
-  if (!Array.isArray(file.items)) {
-    throw new Error(
-      `App metadata must contain an items array: ${APP_METADATA_PATH}`,
-    );
-  }
-  validateAppMetadata(file.items);
-  return file.items;
-}
-
-export function appMetadataMap(items: AppMetadata[]): Map<string, AppMetadata> {
-  return new Map(items.map((item) => [item.key, item]));
 }

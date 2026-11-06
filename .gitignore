@@ -6,3 +6,5 @@ node_modules/
 .astro/
 build/
 dist/
+
+data/.catalog/

@@ -1,24 +1,65 @@
 {
   "schemaVersion": 1,
   "templateId": "aws-ami-v1",
+  "target": {
+    "platform": "aws",
+    "service": "marketplace-catalog",
+    "entityType": "AmiProduct@1.0",
+    "changeType": "UpdateInformation"
+  },
+  "AdditionalResources": [
+    {
+      "Text": "{catalog.name} Image Guide by Websoft9",
+      "Url": "https://support.websoft9.com/en/docs/{catalog.id}"
+    },
+    {
+      "Text": "Install Websoft9 on AWS",
+      "Url": "https://support.websoft9.com/en/docs/install-aws"
+    }
+  ],
   "content": {
-    "ProductTitle": "{name} on AWS - Self-hosted with Websoft9",
-    "ShortDescription": "Deploy self-hosted {name} {edition} on AWS. {valueProposition} {consoleSummary}",
+    "ProductTitle": "{catalog.name} on AWS - Preconfigured, Hardened, Ready in Minutes",
+    "ShortDescription": "Deploy self-hosted {catalog.name} Community Edition on AWS. {catalog.summary} {vendor.consoleSummary}",
     "Highlights": [
-      "{valueProposition}",
-      "{consoleSummary}",
-      "{supportSummary}"
+      "{vendor.highlights[0]}",
+      "{vendor.highlights[1]}",
+      "{vendor.highlights[2]}"
     ],
-    "SupportDescription": "{supportSummary}\nContact: {supportContact}\n{supportScope}"
+    "SearchKeywords": "{catalog.searchKeywords}",
+    "SupportDescription": "{vendor.supportSummary}\nContact: {vendor.supportContact}\n{vendor.supportScope}"
   },
   "longDescriptionSections": [
-    {"heading": "", "text": "{name} {edition} runs on AWS for self-hosted deployment. {valueProposition} {consoleSummary}"},
-    {"heading": "What is included?", "text": "{includedComponents}"},
-    {"heading": "Use cases", "text": "{useCases}"},
-    {"heading": "What you pay for", "text": "{billingSummary}"},
-    {"heading": "Do I need SSH?", "text": "{accessSummary}"},
-    {"heading": "Trademark statement", "text": "{trademarkStatement}"},
-    {"heading": "About {name}", "text": "{summary}"},
-    {"heading": "About Websoft9", "text": "{aboutProvider}"}
+    {
+      "heading": "",
+      "text": "{catalog.name} {catalog.version} runs on AWS for self-hosted deployment. {catalog.summary} {vendor.consoleSummary}"
+    },
+    {
+      "heading": "What is included?",
+      "text": "{catalog.includedComponentsText}"
+    },
+    {
+      "heading": "Use cases",
+      "text": "{catalog.useCasesText}"
+    },
+    {
+      "heading": "What you pay for",
+      "text": "{vendor.billingSummary}"
+    },
+    {
+      "heading": "Do I need SSH?",
+      "text": "{vendor.sshSummary}"
+    },
+    {
+      "heading": "Trademark statement",
+      "text": "{vendor.trademarkStatement}"
+    },
+    {
+      "heading": "About {catalog.name}",
+      "text": "{catalog.overview}"
+    },
+    {
+      "heading": "About Websoft9",
+      "text": "{vendor.aboutVendor}"
+    }
   ]
 }

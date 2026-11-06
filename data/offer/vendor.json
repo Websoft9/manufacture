@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "vendor": "Websoft9",
+  "aboutVendor": "Websoft9 packages self-hosted software for public clouds with its management console, operations tools, and support.",
+  "consoleSummary": "Websoft9 Console helps configure HTTPS, backups, monitoring, and application maintenance.",
+  "highlights": [
+    "Official upstream packages in a hardened image, no forks, no lock-in.",
+    "Websoft9 Console: HTTPS, backup, monitoring, and upgrades with rollback; SSH optional.",
+    "Support: 24-hour response SLA on business days."
+  ],
+  "supportSummary": "Websoft9 provides documentation, configuration guidance and troubleshooting for its Console and supported application deployments.",
+  "supportContact": "help@websoft9.com",
+  "supportScope": "Contact Websoft9 for deployment and operations support. AWS infrastructure is billed separately.",
+  "trademarkStatement": "This application is the property of its original owner, who is not affiliated with and does not endorse this image. Independently provided by Websoft9.",
+  "billingSummary": "The software fee covers the Websoft9 Console, operations tools, and support. AWS infrastructure is billed separately.",
+  "sshSummary": "Standard setup is completed in the browser. SSH remains available for advanced customization."
+}

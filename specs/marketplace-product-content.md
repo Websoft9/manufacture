@@ -9,34 +9,89 @@ implementation supports **existing `AmiProduct@1.0` listings** and
 and visibility changes require their own platform workflows.
 
 `data/offer/aws.md` remains the supplied writing example. Its Odoo title and
-JupyterHub short description conflict; its version, hardening, rollback and SLA
-claims are not automatically verified. The new Odoo record is explicitly a draft.
+JupyterHub short description conflict; do not use that historical example as
+source data. Application and vendor content is maintained in its authoritative
+source and rendered deterministically by the template. Do not repeat a
+per-application fact audit for unchanged source data and template output.
 
 ## Data model
 
 | File | Responsibility |
 | --- | --- |
-| `data/offer/product.schema.json` | Versioned JSON Schema for application facts and AWS bindings |
-| `data/offer/products/<key>.json` | Edition, shipped components, use cases, keyword candidates, evidence and platform configuration |
-| `data/offer/provider.json` | Shared provider identity, console capabilities, support and trademark text, with separate verification |
+| `data/offer/product.schema.json` | Runtime schema for the catalog + AWS rule projection |
+| `data/.catalog/catalog.json` | Temporary Contentful application facts; git-ignored and not authoritative |
+| `data/offer/vendor.json` | Shared vendor identity, highlights, console capabilities, support and trademark text |
 | `data/offer/templates/aws-ami.json` | Fixed copy structure with named placeholders, no credentials or per-product IDs |
+| `cli/aws_marketplace.py` | AWS Marketplace adapter: field names/limits, read normalization, update request shape |
 | `skills/marketplace-product-content/SKILL.md` | Fact checking and personalized content authoring procedure |
+
+## Layered architecture
+
+Keep three layers separate:
+
+1. **Source metadata** — application facts, optional AWS binding/category/media
+   fields come temporarily from `data/.catalog/catalog.json`; vendor statements
+   and templates stay in the repository. None of these files need to mirror a
+   cloud API hierarchy.
+2. **Authoring template** — `aws-ami.json` controls copy structure, placeholders,
+   SearchKeywords sources and default Learning resources. It is not an AWS payload.
+3. **AWS adapter** — `cli/aws_marketplace.py` translates between the authoring
+   model and AWS. It owns field names/limits, read normalization and the update
+   request shape.
+
+`cli/aws_marketplace.py` declares the field contract in `FIELD_SPECS`: read
+path, write field, type, limits, and read transformations. `CONTENT_FIELDS`,
+`FIELD_LIMITS`, `current_content()` and `to_update_document()` derive from this
+contract. Tests assert that template fields stay inside the contract and that
+the read/write shapes round-trip.
+
+AWS-facing names are aligned at the adapter boundary: `ProductTitle`,
+`ShortDescription`, `LongDescription`, `Highlights`, `SearchKeywords`,
+`SupportDescription`, `Categories`, `LogoUrl`, `VideoUrls`,
+`AdditionalResources`. The nested read shape is not copied into authoring data.
+
+Template placeholders name their source explicitly:
+
+- `{catalog.*}` — temporary Contentful application facts (for example
+  `{catalog.name}`, `{catalog.version}`, `{catalog.includedComponentsText}`)
+- `{vendor.*}` — vendor file, including indexed values such as
+  `{vendor.highlights[0]}`
+- `{aws.*}` — product AWS listing (for example
+  `{aws.commercial.billingSummary}`)
+- `{product.*}` — product record (for example `{product.key}`)
+
+A whole field can be sourced from an array placeholder, for example
+`"SearchKeywords": "{catalog.searchKeywords}"`. Templates that cannot express a
+field inline may still use `fieldSources`. Missing paths fail rendering instead
+of silently producing empty text. Application versions come from the configured
+`apps-verson.json`; `includedComponents` is temporarily generated until the
+catalog/content model provides it.
+
+The read shape differs from the update shape:
+
+- Read: `Description.*`, `PromotionalResources.LogoUrl/Videos/AdditionalResources`,
+  `SupportInformation.Description`.
+- Update: flat `UpdateInformation` fields, including `VideoUrls` and
+  `SupportDescription`.
+- Read-side `AdditionalResources` items include `Type`; update-side items use
+  `Text`/`Url`. The adapter removes `Type` for comparison and does not add it to
+  the update payload.
+- `LongDescription` is assembled from template sections; it is not a source field.
 
 The schema uses `schemaVersion: 1`. Only the AWS AMI binding exists today;
 future platforms must add explicit schemas/adapters rather than interpreting
 AWS fields for other platforms. Existing cloud task JSON schemas are unaffected.
 
-Application editions and versions are facts, not generated marketing assertions.
-`application.versions` may be empty; version facts are not inserted into copy
-automatically. `contentOverrides` provides literal, per-listing replacements for
-the title/descriptions/highlights/keywords. Overrides inherit the record's
-evidence requirements and need the same review as template-generated text.
+Application versions are supplied by `apps-verson.json`; `edition` and
+`valueProposition` are no longer required from the repository product files.
+`contentOverrides` provides literal, per-listing replacements for the
+title/descriptions/highlights/keywords and still needs review.
 
-Five verification blocks cover application, provider, listing identity,
-deployment and commercial claims. `verified` requires a checked date and evidence;
-the tool validates structure, not truth. The skill/operator checks the evidence.
-All five must be verified before submission because deployment and billing
-statements also appear in the long description. Unknown Catalog IDs stay null.
+Contentful application data, vendor copy and the shared template are the sources
+of truth. The tool validates structure and renders deterministically; it does
+not maintain a per-application verification status. Correct source data when it
+is missing or inconsistent. Unknown Catalog IDs stay null and block publication
+until resolved.
 
 ## AWS field mapping
 
@@ -51,9 +106,20 @@ statements also appear in the long description. Unknown Catalog IDs stay null.
 | Platform-selected category names | `Categories` |
 | Public unsigned resource URLs | `LogoUrl`, `VideoUrls`, `AdditionalResources` |
 
+`aws-ami.json` declares `SearchKeywords` via a direct placeholder and
+`Highlights` via indexed `vendor.highlights` values. It does not update
+`Categories`, `LogoUrl`, or `VideoUrls`. It provides two default Learning resources
+(AdditionalResources): `<name> Image Guide by Websoft9` at
+`support.websoft9.com/en/docs/<key>`, and `Install Websoft9 on AWS`. A product's
+non-empty `listings.aws.additionalResources` overrides those defaults.
+`SupportDescription` is the AWS Marketplace Support details field; the two
+AdditionalResources entries are the Learning resources rows.
+
 Existing entity values are read from `Description`, `PromotionalResources` and
-`SupportInformation`; the read shape is not the update shape. Plans normalize
-additional-resource `Type` fields before comparison. Empty/absent optional
+`SupportInformation`; the read shape is not the update shape. The AWS adapter
+normalizes `Videos` to `VideoUrls`, reads `SupportInformation.Description` as
+`SupportDescription`, and removes read-side additional-resource `Type` fields
+before comparison. Update payloads use `Text`/`Url` only for additional resources. Empty/absent optional
 categories/media fields preserve existing AWS values; this version does not
 implement explicit deletion of them. Categories must be confirmed AWS category
 names (AWS also validates them). The local checker validates supported lengths,
@@ -67,24 +133,36 @@ inspect the actual marketplace rendering after a write.
 
 ## Commands
 
-For the Issue/Form and Actions user journey (compare, restricted editing or AI
-optimization, review, publish and confirm), see
+The former product-file Issue workflow is paused; see
 [`marketplace-offer-update-workflow.md`](marketplace-offer-update-workflow.md).
-It reuses the renderer and revision-bound planner documented here.
+Application facts now come from the temporary catalog, so a future Issue flow
+must write to Contentful instead of a repository product file.
 
-Offline commands use the repository template and schema; JSON and Markdown
-are printed to stdout and no source file is rewritten.
+`build` writes the human-review preview; use `--output -` to print it instead.
+`--publish-ready` fails without writing until required fields and Catalog identity
+are present. The default version source is remote; pass a local `--versions` file
+for a fully offline run. None of these commands contact AWS.
 
 ```sh
-mk offer render --product data/offer/products/odoo.json --format markdown
-mk offer validate --product data/offer/products/odoo.json
-mk offer validate --product data/offer/products/odoo.json --publish-ready
+mk offer build --app odoo --cloud aws
+mk offer build --app odoo --cloud aws --output /tmp/odoo-preview.md
+mk offer build --app odoo --cloud aws --publish-ready
+mk offer plan --app odoo --profile marketplace-seller --output /tmp/odoo-plan.json
 python3 ci/validate_offers.py
 ```
 
-`--provider` and `--template` allow alternate reviewed local source files. The
-template ID must match the product record. Draft validation succeeds for the
-Odoo example; `--publish-ready` fails until facts and identity are confirmed.
+`build` is offline and does not contact AWS. It writes
+`data/.catalog/aws/<key>.json` by default (git-ignored) as a human-review preview
+that mirrors the authoring template: resolved `content`,
+`longDescriptionSections`, `target`, and `AdditionalResources`. AWS read/write
+views and ChangeSet payloads remain internal program structures. `plan` remains
+the live revision-bound step; `--output` saves the complete plan/request for
+review and audit.
+
+`--catalog`, `--versions`, `--vendor` and `--template` allow
+alternate reviewed local source files. Defaults are
+`data/.catalog/catalog.json`, the configured version source,
+`data/offer/vendor.json` and the AWS template.
 
 Install optional AWS dependencies and use AWS's normal credential provider
 chain (SSO/profile, environment, or assumed role). Do not put credentials in
@@ -92,25 +170,26 @@ master data, command arguments, generated plans or repository configuration.
 
 ```sh
 pip install '.[aws]'
-mk offer list --profile marketplace-seller
-mk offer plan --product data/offer/products/odoo.json --profile marketplace-seller
+mk offer resolve-entity --cloud aws --code <offer-code> [--code <offer-code> ...] --profile marketplace-seller
+mk offer plan --app odoo --profile marketplace-seller
 ```
 
-`list` resolves seller-owned AMI Catalog IDs with pagination. Set the verified
-ID in the product's `entityId`; a public SKU, product code or `prodview-` ID is
-not a substitute. The integration uses `us-east-1` for the Catalog client.
+`resolve-entity` resolves seller-owned AMI Catalog IDs with pagination. Set the confirmed
+`entityId` in the temporary catalog item; a public SKU, product code or
+`prodview-` ID is not a substitute. The integration uses `us-east-1` for the
+Catalog client.
 
 Save the **reviewed plan output** in an access-controlled location outside Git
 (for example under `/tmp/opencode/` for a local trial), then submit exactly it:
 
 ```sh
-mk offer apply --product data/offer/products/odoo.json --plan /tmp/opencode/odoo-plan.json --profile marketplace-seller --wait-seconds 600
+mk offer apply --app odoo --plan /tmp/opencode/odoo-plan.json --profile marketplace-seller --wait-seconds 600
 mk offer status <change-set-id> --profile marketplace-seller --wait-seconds 600
 ```
 
-`apply` is the explicit write action. It checks verified evidence, rereads live
-metadata and compares the complete recomputed plan to the reviewed artifact.
-Changed source/template/provider, live revision or plan payload fails closed.
+`apply` is the explicit write action. It rereads live metadata and compares the
+complete recomputed plan to the reviewed artifact.
+Changed source/template/vendor, live revision or plan payload fails closed.
 It submits only changed fields, uses the live `EntityId@RevisionId` and a
 deterministic plan hash as `ClientRequestToken`. A no-op plan submits nothing.
 Each product gets one ChangeSet; AWS locks the entity while it processes it.

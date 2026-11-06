@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from . import __version__
+from .commands.catalog import catalog_command
 from .commands.list_apps import list_command
 from .commands.versions import versions_command
 from .commands.offer import offer_command
@@ -24,6 +25,7 @@ def help_command(ctx: click.Context) -> None:
 cli.add_command(list_command, "list")
 cli.add_command(versions_command, "versions")
 cli.add_command(offer_command, "offer")
+cli.add_command(catalog_command, "catalog")
 cli.add_command(help_command, "help")
 
 

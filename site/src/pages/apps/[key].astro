@@ -2,36 +2,21 @@
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import {
   PLATFORMS,
-  appMetadataMap,
-  loadAppMetadata,
   loadMarketplaceData,
-  type AppMetadata,
   type AppRow,
   type CatalogProduct,
 } from "../../lib/marketplace";
 
 export async function getStaticPaths() {
-  const [{ rows, catalog }, metadataItems] = await Promise.all([
-    loadMarketplaceData(),
-    loadAppMetadata(),
-  ]);
-  const metadataByKey = appMetadataMap(metadataItems);
+  const { rows, catalog } = await loadMarketplaceData();
   const rowsByKey = new Map(rows.map((row) => [row.key, row]));
   const catalogKeys = catalog.map((product) => product.key);
   const availableKeys = new Set(catalogKeys);
-  const missing = catalog.filter((product) => !metadataByKey.has(product.key));
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing app metadata for: ${missing.map((product) => product.key).join(", ")}`,
-    );
-  }
 
   return catalog.map((product) => ({
     params: { key: product.key },
     props: {
       product,
-      metadata: metadataByKey.get(product.key)!,
       row: rowsByKey.get(product.key),
       catalogKeys: [...availableKeys],
     },
@@ -40,12 +25,11 @@ export async function getStaticPaths() {
 
 interface Props {
   product: CatalogProduct;
-  metadata: AppMetadata;
   row?: AppRow;
   catalogKeys: string[];
 }
 
-const { product, metadata, row, catalogKeys } = Astro.props;
+const { product, row, catalogKeys } = Astro.props;
 const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
 const appsHref = `${basePath}/apps`;
 const detailHrefFor = (key: string) => `${basePath}/apps/${key}`;
@@ -55,6 +39,20 @@ const summary = product.summary ?? product.overview ?? "";
 const logoUrl = product.logo?.imageurl;
 const overview = product.overview?.trim() ?? "";
 const description = product.description?.trim() ?? "";
+const textList = (value: string[] | string | undefined): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,;，；]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+const useCases = textList(product.usecases ?? product.useCases);
+const keywords = textList(product.keywords);
 const categories = (product.catalogCollection?.items ?? [])
   .map((item) => item.title)
   .filter((title): title is string => Boolean(title));
@@ -134,29 +132,33 @@ const platformLinks = row
         ) : null}
       </section>
 
-      <section class="panel detail-panel">
-        <div class="panel-heading">
-          <div>
-            <h2>Use Cases</h2>
-            <p>适合使用 {name} 的典型场景。</p>
+      {useCases.length > 0 ? (
+        <section class="panel detail-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Use Cases</h2>
+              <p>适合使用 {name} 的典型场景。</p>
+            </div>
           </div>
-        </div>
-        <p class="detail-copy">{metadata.useCases}</p>
-      </section>
+          <p class="detail-copy">{useCases.join(", ")}</p>
+        </section>
+      ) : null}
 
-      <section class="panel detail-panel">
-        <div class="panel-heading">
-          <div>
-            <h2>Keywords</h2>
-            <p>AWS Marketplace 搜索关键词，最多 15 个，每个不超过 50 字符。</p>
+      {keywords.length > 0 ? (
+        <section class="panel detail-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Keywords</h2>
+              <p>Marketplace 搜索关键词。</p>
+            </div>
           </div>
-        </div>
-        <div class="chip-list">
-          {metadata.keywords.map((keyword) => (
-            <span class="chip">{keyword}</span>
-          ))}
-        </div>
-      </section>
+          <div class="chip-list">
+            {keywords.map((keyword) => (
+              <span class="chip">{keyword}</span>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
 
     <aside class="detail-side">

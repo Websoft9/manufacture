@@ -28,6 +28,14 @@ def find_config() -> Path:
 
 CONFIG_PATH = find_config()
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+REPO_ROOT = CONFIG_PATH.parents[1]
+
+
+def catalog_default_path() -> Path:
+    """Default staging dataset for catalog pull/push."""
+    configured = os.environ.get("MK_CATALOG_DIR")
+    directory = Path(configured) if configured else REPO_ROOT / "data" / ".catalog"
+    return directory / "catalog.json"
 
 SOURCES = CONFIG["sources"]
 OFFER_URL = os.environ.get("MK_OFFER_URL", SOURCES["offer"])
@@ -35,6 +43,7 @@ CATALOG_URL = os.environ.get("MK_CATALOG_URL", SOURCES["catalog"])
 VERSIONS_URL = os.environ.get("MK_VERSIONS_URL", SOURCES["versions"])
 
 ALL_PLATFORM_CONFIGS = tuple(CONFIG["platforms"])
+CONFIGURED_PLATFORMS = tuple(str(item["key"]) for item in ALL_PLATFORM_CONFIGS)
 PLATFORM_CONFIGS = tuple(
     item for item in ALL_PLATFORM_CONFIGS if item.get("urlTemplate")
 )

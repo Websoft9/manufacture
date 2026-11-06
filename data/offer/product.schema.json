@@ -10,17 +10,18 @@
     "application": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "edition", "summary", "valueProposition", "includedComponents", "useCases", "searchKeywords", "versions", "verification"],
+      "required": ["name", "summary", "includedComponents", "useCases", "searchKeywords", "versions"],
       "properties": {
         "name": {"$ref": "#/$defs/text"},
         "edition": {"$ref": "#/$defs/text"},
         "summary": {"$ref": "#/$defs/text"},
+        "overview": {"$ref": "#/$defs/text"},
         "valueProposition": {"$ref": "#/$defs/text"},
+        "version": {"$ref": "#/$defs/text"},
         "includedComponents": {"$ref": "#/$defs/textList"},
         "useCases": {"$ref": "#/$defs/textList"},
         "searchKeywords": {"$ref": "#/$defs/keywords"},
-        "versions": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
-        "verification": {"$ref": "#/$defs/verification"}
+        "versions": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}}
       }
     },
     "listings": {
@@ -31,7 +32,7 @@
         "aws": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["entityType", "entityId", "templateId", "locale", "contentOverrides", "categories", "additionalResources", "logoUrl", "videoUrls", "deployment", "commercial", "verification"],
+          "required": ["entityType", "entityId", "templateId", "locale", "contentOverrides", "categories", "additionalResources", "logoUrl", "videoUrls"],
           "properties": {
             "entityType": {"const": "AmiProduct@1.0"},
             "entityId": {"type": ["string", "null"], "pattern": "^(prod-[a-zA-Z0-9]+|[a-fA-F0-9]{8}-[a-fA-F0-9-]{27})$"},
@@ -62,23 +63,20 @@
             "videoUrls": {"type": "array", "maxItems": 1, "items": {"$ref": "#/$defs/url"}},
             "deployment": {
               "type": "object", "additionalProperties": false,
-              "required": ["accessSummary", "usageInstructions", "verification"],
+              "required": ["accessSummary", "usageInstructions"],
               "properties": {
                 "accessSummary": {"$ref": "#/$defs/text"},
-                "usageInstructions": {"$ref": "#/$defs/text"},
-                "verification": {"$ref": "#/$defs/verification"}
+                "usageInstructions": {"$ref": "#/$defs/text"}
               }
             },
             "commercial": {
               "type": "object", "additionalProperties": false,
-              "required": ["billingSummary", "refundPolicy", "verification"],
+              "required": ["billingSummary", "refundPolicy"],
               "properties": {
                 "billingSummary": {"$ref": "#/$defs/text"},
-                "refundPolicy": {"type": ["string", "null"], "minLength": 1},
-                "verification": {"$ref": "#/$defs/verification"}
+                "refundPolicy": {"type": ["string", "null"], "minLength": 1}
               }
-            },
-            "verification": {"$ref": "#/$defs/verification"}
+            }
           }
         }
       }
@@ -88,17 +86,6 @@
     "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
     "url": {"type": "string", "pattern": "^https://[^\\s?#]+$"},
     "textList": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
-    "keywords": {"type": "array", "minItems": 1, "maxItems": 15, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "\\S"}},
-    "verification": {
-      "type": "object", "additionalProperties": false,
-      "required": ["status", "checkedAt", "evidence", "notes"],
-      "properties": {
-        "status": {"enum": ["unverified", "verified"]},
-        "checkedAt": {"type": ["string", "null"], "format": "date"},
-        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}},
-        "notes": {"$ref": "#/$defs/text"}
-      },
-      "allOf": [{"if": {"properties": {"status": {"const": "verified"}}}, "then": {"properties": {"checkedAt": {"type": "string", "format": "date"}}}}]
-    }
+    "keywords": {"type": "array", "minItems": 1, "maxItems": 15, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "\\S"}}
   }
 }
