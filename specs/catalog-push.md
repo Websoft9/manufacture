@@ -47,7 +47,9 @@ multi-app data use the same file shape; only the number of `items` changes.
 | `overview` | `overview` | `--locale` |
 | `keywords` | `keywords` | `--locale` |
 | `usecases` | `useCases` | Non-localized |
+| `components` | `Component` | Non-localized |
 | `summary` | `summary` | `--locale` |
+| `hasenterprise` | `hasEnterprise` | Non-localized |
 
 The field IDs and localization flags come from the Contentful content-type
 schema. The full entry is fetched first and only the target locale/fields are
@@ -58,7 +60,8 @@ Input fields outside the table are rejected instead of silently ignored.
 
 Empty strings, empty arrays and `null` are skipped by default. This prevents a
 `pull` dataset containing `"usecases": []` from clearing a populated field.
-Use `--clear` to explicitly write `""` for text fields or `[]` for array fields.
+Boolean `false` is a real value and is written. Use `--clear` to explicitly
+write `""` for text fields, `[]` for array fields or `false` for Boolean fields.
 
 ## Safety and reporting
 
@@ -82,7 +85,7 @@ Use `--clear` to explicitly write `""` for text fields or `[]` for array fields.
 
 - English locale only per invocation (`--locale`).
 - Existing `product` entries only; no create/delete.
-- `tags` and other linked/array fields are intentionally not pushed.
+- `tags` and other linked fields are intentionally not pushed.
 - Factual accuracy is not validated; the input dataset must be reviewed.
 
 ## Validation

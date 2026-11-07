@@ -14,7 +14,7 @@ from typing import Any, Callable
 from .marketplace import load_json
 
 DEFAULT_API_URL = "https://cdn.contentful.com"
-DEFAULT_FIELDS = ("trademark", "overview", "keywords", "usecases", "summary")
+DEFAULT_FIELDS = ("trademark", "overview", "keywords", "usecases", "components", "summary", "hasenterprise")
 USER_AGENT = "Websoft9-manufacture/1.0"
 Progress = Callable[[str], None]
 
@@ -34,6 +34,8 @@ def _field_matcher(fields: dict[str, Any], wanted: str) -> str | None:
         return wanted
     aliases = {
         "usecases": ("usecases", "useCases", "use_cases"),
+        "components": ("components", "component"),
+        "hasenterprise": ("hasenterprise", "hasEnterprise", "has_enterprise"),
         "tags": ("tags", "tag"),
     }
     candidates = aliases.get(wanted, (wanted,))
@@ -76,11 +78,32 @@ def _asset_url(asset: dict[str, Any]) -> str | None:
     return url if url.startswith("https://") else f"https:{url}"
 
 
+def _link_entry_ids(value: Any) -> set[str]:
+    ids: set[str] = set()
+
+    def walk(node: Any) -> None:
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, dict):
+            return
+        sys = node.get("sys")
+        if isinstance(sys, dict) and sys.get("type") == "Link" and sys.get("linkType") == "Entry" and sys.get("id"):
+            ids.add(str(sys["id"]))
+            return
+        for item in node.values():
+            walk(item)
+
+    walk(value)
+    return ids
+
+
 def _entry_label(entry: dict[str, Any]) -> Any:
     fields = entry.get("fields") or {}
     if not isinstance(fields, dict):
         return entry.get("sys", {}).get("id")
-    for key in ("name", "title", "label", "value", "text", "key"):
+    for key in ("name", "trademark", "title", "label", "value", "text", "key"):
         if key in fields:
             return fields[key]
     return fields
@@ -337,9 +360,17 @@ def build_dataset(
             if matched is None:
                 absent.append(wanted)
                 schema_field = _field_matcher(field_types or {}, wanted)
-                record[wanted] = [] if schema_field and (field_types or {}).get(schema_field) == "Array" else None
+                field_type = (field_types or {}).get(schema_field) if schema_field else None
+                if field_type == "Array":
+                    record[wanted] = []
+                elif field_type == "Boolean":
+                    record[wanted] = wanted == "hasenterprise"
+                else:
+                    record[wanted] = None
                 continue
             record[wanted] = _resolve(item_fields[matched], container["includes"], raw)
+        if "hasenterprise" in record and record["hasenterprise"] is None:
+            record["hasenterprise"] = True
         if absent:
             missing_fields.append(f"{key}: {', '.join(absent)}")
         items.append(record)
@@ -444,10 +475,33 @@ def pull_dataset(
             timeout=timeout,
             progress=progress,
         )
+        link_ids: set[str] = set()
+        for entry in management_entries:
+            link_ids.update(_link_entry_ids(entry.get("fields") or {}))
+        linked_entries: list[dict[str, Any]] = []
+        if link_ids:
+            linked_entries = contentful_management.fetch_entries(
+                token=token.strip(),
+                space_id=space_id.strip(),
+                environment=environment.strip(),
+                ids=tuple(sorted(link_ids)),
+                api_url=management_api,
+                page_size=min(page_size, 1000),
+                timeout=timeout,
+                progress=progress,
+            )
+        includes: dict[tuple[str, str], dict[str, Any]] = {}
+        for linked in linked_entries:
+            linked_id = (linked.get("sys") or {}).get("id")
+            if linked_id:
+                includes[("Entry", str(linked_id))] = {
+                    **linked,
+                    "fields": _management_fields(linked.get("fields") or {}, {}, locale.strip()),
+                }
         entries = [
             {
                 "item": {**entry, "fields": _management_fields(entry.get("fields") or {}, schema, locale.strip())},
-                "includes": {},
+                "includes": includes,
             }
             for entry in management_entries
         ]

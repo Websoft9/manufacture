@@ -23,7 +23,9 @@ SCHEMA = {
     "overview": {"type": "Text", "localized": True},
     "keywords": {"type": "Array", "localized": True, "items": {"type": "Symbol"}},
     "useCases": {"type": "Array", "localized": False, "items": {"type": "Symbol"}},
+    "components": {"type": "Array", "localized": False, "items": {"type": "Symbol"}},
     "summary": {"type": "Symbol", "localized": True},
+    "hasenterprise": {"type": "Boolean", "localized": False},
     "other": {"type": "Symbol", "localized": False},
 }
 ENTRY = {
@@ -34,7 +36,9 @@ ENTRY = {
         "overview": {"en-US": "Old overview"},
         "keywords": {"en-US": ["old"]},
         "useCases": {"en-US": ["old"]},
+        "components": {"en-US": ["old component"]},
         "summary": {"en-US": "Old summary"},
+        "hasenterprise": {"en-US": False},
         "other": "keep",
     },
 }
@@ -44,21 +48,25 @@ ITEM = {
     "overview": "New overview",
     "keywords": ["site", "cms"],
     "usecases": ["publishing"],
+    "components": ["PostgreSQL", "pgAdmin"],
     "summary": "New summary",
+    "hasenterprise": True,
 }
 
 
 class BuildChangesTests(unittest.TestCase):
     def test_merges_only_target_locale_and_preserves_other_fields(self) -> None:
         fields, changed, skipped, unchanged = cma.build_changes(ITEM, ENTRY, SCHEMA)
-        self.assertEqual(changed, ["trademark", "overview", "keywords", "usecases", "summary"])
+        self.assertEqual(changed, ["trademark", "overview", "keywords", "usecases", "components", "summary", "hasenterprise"])
         self.assertEqual(skipped, [])
         self.assertEqual(unchanged, [])
         self.assertEqual(fields["trademark"], {"en-US": "WordPress", "zh-CN": "旧"})
         self.assertEqual(fields["overview"], {"en-US": "New overview"})
         self.assertEqual(fields["keywords"], {"en-US": ["site", "cms"]})
         self.assertEqual(fields["useCases"], {"en-US": ["publishing"]})
+        self.assertEqual(fields["components"], {"en-US": ["PostgreSQL", "pgAdmin"]})
         self.assertEqual(fields["summary"], {"en-US": "New summary"})
+        self.assertEqual(fields["hasenterprise"], {"en-US": True})
         self.assertEqual(fields["other"], "keep")
         self.assertEqual(fields["key"], {"en-US": "wordpress"})
 
@@ -90,6 +98,8 @@ class BuildChangesTests(unittest.TestCase):
             cma.build_changes({"id": "wordpress", "keywords": "not-a-list"}, ENTRY, SCHEMA)
         with self.assertRaisesRegex(contentful.ContentfulError, "must be a string"):
             cma.build_changes({"id": "wordpress", "summary": ["bad"]}, ENTRY, SCHEMA)
+        with self.assertRaisesRegex(contentful.ContentfulError, "must be a boolean"):
+            cma.build_changes({"id": "wordpress", "hasenterprise": "yes"}, ENTRY, SCHEMA)
 
 
 class InputTests(unittest.TestCase):

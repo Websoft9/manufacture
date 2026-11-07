@@ -61,7 +61,7 @@ includes drafts; linked fields may remain as link objects in that mode.
 | `--content-type` | `product` | Content type id |
 | `--locale` | `en-US` | English locale |
 | `--id-field` | `key` | Contentful field containing the app id (`wordpress`) |
-| `--fields` | `trademark,overview,keywords,usecases,summary` | Requested field ids |
+| `--fields` | `trademark,overview,keywords,usecases,components,summary,hasenterprise` | Requested field ids |
 | `--catalog` | configured `product_en.json` URL | Target application list (URL or local file) |
 | `--apps` | all catalog applications | Comma-separated application ids to export; must exist in the target catalog |
 | `--output` | `data/.catalog/catalog.json` | JSON destination; `-` means stdout; `MK_CATALOG_DIR` overrides the directory |
@@ -73,6 +73,8 @@ includes drafts; linked fields may remain as link objects in that mode.
 | `--timeout` | 30 | HTTP timeout in seconds |
 
 `usecases` also matches the Contentful field id `useCases` (and `use_cases`).
+`components` also matches the Contentful field id `Component`.
+`hasenterprise` also matches `hasEnterprise` and `has_enterprise`.
 `keywords` is the default for search/tag-like metadata; the older `tags` field is
 still available explicitly via `--fields` and also matches `tag`. Use `--fields`
 for any other content-model names.
@@ -94,7 +96,9 @@ catalog order is used; with `--apps`, the requested order is used:
       "overview": "...",
       "keywords": ["open source", "website"],
       "usecases": [],
-      "summary": "..."
+      "components": ["PostgreSQL", "pgAdmin"],
+      "summary": "...",
+      "hasenterprise": false
     }
   ],
   "source": {
@@ -111,9 +115,11 @@ catalog order is used; with `--apps`, the requested order is used:
 ```
 
 Fields that exist in the Contentful content model but are empty are normal query
-results: array fields are emitted as `[]`, other fields as `null`, and counts are
-reported to stderr. No extra flag is required. A requested field id that does not
-exist in the content model is still rejected so `--fields` typos fail loudly.
+results: array fields are emitted as `[]`, Boolean fields as `false` except
+`hasenterprise` (missing/null defaults to `true`), other fields as `null`, and
+counts are reported to stderr. No extra flag is required.
+A requested field id that does not exist in the content model is still rejected
+so `--fields` typos fail loudly.
 
 By default a target application absent from Contentful still fails the export;
 `--allow-missing` writes the available records and adds a `missing` array.

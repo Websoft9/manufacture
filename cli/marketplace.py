@@ -37,10 +37,19 @@ def catalog_default_path() -> Path:
     directory = Path(configured) if configured else REPO_ROOT / "data" / ".catalog"
     return directory / "catalog.json"
 
+APP_CONFIG_PATH = CONFIG_PATH.parent / "app.json"
+APP_CONFIG = (
+    json.loads(APP_CONFIG_PATH.read_text(encoding="utf-8"))
+    if APP_CONFIG_PATH.is_file()
+    else {}
+)
+MULTI_VERSION_APPS = frozenset(str(item) for item in APP_CONFIG.get("multi_version_apps", []))
+
 SOURCES = CONFIG["sources"]
+APP_SOURCES = APP_CONFIG["sources"]
 OFFER_URL = os.environ.get("MK_OFFER_URL", SOURCES["offer"])
-CATALOG_URL = os.environ.get("MK_CATALOG_URL", SOURCES["catalog"])
-VERSIONS_URL = os.environ.get("MK_VERSIONS_URL", SOURCES["versions"])
+CATALOG_URL = os.environ.get("MK_CATALOG_URL", APP_SOURCES["catalog"])
+VERSIONS_URL = os.environ.get("MK_VERSIONS_URL", APP_SOURCES["versions"])
 
 ALL_PLATFORM_CONFIGS = tuple(CONFIG["platforms"])
 CONFIGURED_PLATFORMS = tuple(str(item["key"]) for item in ALL_PLATFORM_CONFIGS)

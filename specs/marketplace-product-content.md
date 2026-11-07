@@ -18,7 +18,6 @@ per-application fact audit for unchanged source data and template output.
 
 | File | Responsibility |
 | --- | --- |
-| `data/offer/product.schema.json` | Runtime schema for the catalog + AWS rule projection |
 | `data/.catalog/catalog.json` | Temporary Contentful application facts; git-ignored and not authoritative |
 | `data/offer/vendor.json` | Shared vendor identity, highlights, console capabilities, support and trademark text |
 | `data/offer/templates/aws-ami.json` | Fixed copy structure with named placeholders, no credentials or per-product IDs |
@@ -50,22 +49,32 @@ AWS-facing names are aligned at the adapter boundary: `ProductTitle`,
 `SupportDescription`, `Categories`, `LogoUrl`, `VideoUrls`,
 `AdditionalResources`. The nested read shape is not copied into authoring data.
 
-Template placeholders name their source explicitly:
+The template declares its logical namespaces in `namespaces` and uses
+namespace-qualified paths that map directly to source fields:
 
-- `{catalog.*}` — temporary Contentful application facts (for example
-  `{catalog.name}`, `{catalog.version}`, `{catalog.includedComponentsText}`)
+- `{catalog.*}` — temporary Contentful application facts, such as
+  `{catalog.trademark}`, `{catalog.summary}`, `{catalog.usecases}`,
+  `{catalog.keywords}`, or `{catalog.overview}`
+- `{versions.*}` — selected application version, such as `{versions.version}`, and the multi-version suffix `{versions.selection}`
 - `{vendor.*}` — vendor file, including indexed values such as
   `{vendor.highlights[0]}`
-- `{aws.*}` — product AWS listing (for example
-  `{aws.commercial.billingSummary}`)
-- `{product.*}` — product record (for example `{product.key}`)
 
-A whole field can be sourced from an array placeholder, for example
-`"SearchKeywords": "{catalog.searchKeywords}"`. Templates that cannot express a
-field inline may still use `fieldSources`. Missing paths fail rendering instead
-of silently producing empty text. Application versions come from the configured
-`apps-verson.json`; `includedComponents` is temporarily generated until the
-catalog/content model provides it.
+Actual source locations remain in `config/marketplace.json` (offer) and
+`config/app.json` (catalog and versions), or in command options;
+the template only names logical namespaces. A whole field can use an array
+placeholder, for example `"SearchKeywords": "{catalog.keywords}"`. Arrays
+interpolated into text use an explicit filter such as
+`{catalog.usecases | join: '; '}`. The optional second `join` argument adds a
+suffix only when the list is non-empty, so
+`{catalog.components | join: ', ', ', '}` inserts components before fixed text
+without leaving a leading comma. Source data values are literal; placeholders
+belong only in templates. For example, the template combines
+`{catalog.trademark}` with `{vendor.trademarkStatement}` instead of embedding a
+placeholder in `vendor.json`. Platform-specific wording such as AWS billing or
+infrastructure text belongs in the platform template, not the shared vendor
+file. Undeclared namespaces and missing fields fail
+rendering instead of silently producing empty text. There is no intermediate
+runtime product or product schema.
 
 The read shape differs from the update shape:
 
@@ -77,13 +86,36 @@ The read shape differs from the update shape:
   `Text`/`Url`. The adapter removes `Type` for comparison and does not add it to
   the update payload.
 - `LongDescription` is assembled from template sections; it is not a source field.
+When the template sets `boldLongDescriptionHeadings`, non-empty section headings
+are emitted as AWS-supported Markdown bold (`**Heading**`) in the submitted
+description while the structured preview keeps plain headings.
+`previewOnlySections` (currently Usage and Refunds) are rendered into the local
+preview but are never added to `content`, `plan`, or the `UpdateInformation`
+ChangeSet. Their `id` values leave room for separate Usage/Refund workflows later.
 
-The schema uses `schemaVersion: 1`. Only the AWS AMI binding exists today;
-future platforms must add explicit schemas/adapters rather than interpreting
-AWS fields for other platforms. Existing cloud task JSON schemas are unaffected.
+Only the AWS AMI binding exists today; future platforms must add explicit
+templates/adapters rather than interpreting AWS fields for other platforms.
+Existing cloud task JSON schemas are unaffected.
 
-Application versions are supplied by `apps-verson.json`; `edition` and
-`valueProposition` are no longer required from the repository product files.
+Application versions are supplied by `apps-verson.json`. An entry may provide a
+single `version` string, or a list via `version`/`versions`; the first value is
+the selected version used by `{versions.version}`.
+
+`config/app.json` lists `multi_version_apps`. For those ids, when the versions
+source provides two or more values, the "What is included?" section appends
+`<v1>/<v2>/... for selection` after the trademark. The literal `latest` value is
+ignored, and single-value apps keep the existing wording. Rendered versions keep
+at most two dotted components (`a.b.c` becomes `a.b`); one- and two-component
+versions are unchanged, and duplicate display versions are removed.
+
+The AWS `ShortDescription` distinguishes multi-version applications: it says
+`Choose from <app> <versions> at launch` using every configured version except
+`latest` when the application is multi-version and at least two options exist,
+otherwise `Deploy <app> <version>`. `ShortDescription` does not vary by
+`catalog.hasenterprise`; the community/commercial distinction remains in the
+long description and pricing copy. In the long description, a true
+`hasenterprise` app usually has a separate commercial edition, so the offer is
+named as `<app> Community Edition`; a false value omits the edition label.
 `contentOverrides` provides literal, per-listing replacements for the
 title/descriptions/highlights/keywords and still needs review.
 

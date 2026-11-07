@@ -1,0 +1,216 @@
+# Manual Marketplace ChangeSet apply workflow.
+# Configure required reviewers on the aws-marketplace-production environment
+# before using this workflow. The apply job waits for that approval.
+name: Marketplace Offer Apply
+run-name: "Apply ${{ inputs.app_name || inputs.app }} to ${{ inputs.cloud }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Application id from the catalog, for example odoo"
+        required: true
+        type: string
+      app_name:
+        description: "Optional application display name for the run, for example Odoo"
+        required: false
+        type: string
+      cloud:
+        description: "Target cloud platform (currently only aws is implemented)"
+        required: true
+        default: aws
+        type: choice
+        options:
+          - aws
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: marketplace-offer-apply-${{ inputs.cloud }}-${{ inputs.app }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APP: ${{ inputs.app }}
+      APP_NAME: ${{ inputs.app_name || inputs.app }}
+      CLOUD: ${{ inputs.cloud }}
+      CONTENTFUL_SPACE_ID: ${{ vars.CONTENTFUL_SPACE_ID }}
+      CONTENTFUL_ENVIRONMENT: ${{ vars.CONTENTFUL_ENVIRONMENT || 'master' }}
+    steps:
+      - name: Validate inputs
+        run: |
+          if [[ ! "$APP" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "::error::app must be a lowercase application id, for example odoo"
+            exit 1
+          fi
+          if [[ "$CLOUD" != "aws" ]]; then
+            echo "::error::Only cloud=aws is implemented by the current apply workflow."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install CLI
+        run: python -m pip install --disable-pip-version-check '.[aws]'
+
+      - name: Pull Contentful application data
+        env:
+          CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
+        run: |
+          if [[ -z "$CONTENTFUL_TOKEN" || -z "$CONTENTFUL_SPACE_ID" ]]; then
+            echo "::error::Configure CONTENTFUL_TOKEN as a repository secret and CONTENTFUL_SPACE_ID as a repository variable."
+            exit 1
+          fi
+          mkdir -p /tmp/opencode/offer-run
+          mk catalog pull \
+            --apps "$APP" \
+            --output /tmp/opencode/offer-run/catalog.json \
+            --environment "$CONTENTFUL_ENVIRONMENT"
+
+      - name: Snapshot application versions
+        run: |
+          versions_url="$(python3 -c 'import json; print(json.load(open("config/app.json"))["sources"]["versions"])')"
+          curl -fsSL "$versions_url" -o /tmp/opencode/offer-run/apps-verson.json
+
+      - name: Build preview
+        run: |
+          mk offer build \
+            --app "$APP" \
+            --cloud "$CLOUD" \
+            --catalog /tmp/opencode/offer-run/catalog.json \
+            --versions /tmp/opencode/offer-run/apps-verson.json \
+            --output "data/.catalog/$CLOUD/$APP.json"
+          cp "data/.catalog/$CLOUD/$APP.json" /tmp/opencode/offer-run/preview.json
+
+      - name: Check AWS plan role
+        env:
+          AWS_PLAN_ROLE_ARN: ${{ vars.AWS_PLAN_ROLE_ARN || vars.AWS_ROLE_ARN }}
+        run: |
+          if [[ -z "$AWS_PLAN_ROLE_ARN" ]]; then
+            echo "::error::Configure AWS_PLAN_ROLE_ARN, or AWS_ROLE_ARN, as a repository variable."
+            exit 1
+          fi
+          if [[ ! "$AWS_PLAN_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/.+$ ]]; then
+            echo "::error::AWS_PLAN_ROLE_ARN must be an IAM role ARN."
+            exit 1
+          fi
+
+      - name: Configure read-only AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN || vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: MarketplaceOfferPlan-${{ github.run_id }}
+
+      - name: Generate revision-bound plan
+        run: |
+          mk offer plan \
+            --app "$APP" \
+            --catalog /tmp/opencode/offer-run/catalog.json \
+            --versions /tmp/opencode/offer-run/apps-verson.json \
+            --output /tmp/opencode/offer-run/plan.json
+
+      - name: Summarize plan
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          from pathlib import Path
+
+          plan = json.loads(Path("/tmp/opencode/offer-run/plan.json").read_text(encoding="utf-8"))
+          print(f"## Offer plan: {os.environ['APP_NAME']} (`{plan.get('key')}`)")
+          print()
+          print(f"- Cloud: `{os.environ['CLOUD']}`")
+          print(f"- Entity revision: `{plan.get('baseRevision')}`")
+          print(f"- Source hash: `{plan.get('sourceHash')}`")
+          print(f"- Plan hash: `{plan.get('planHash')}`")
+          print(f"- Publish blockers: {', '.join(plan.get('publishBlockers') or []) or 'none'}")
+          print(f"- Changed fields: {', '.join((plan.get('diff') or {}).keys()) or 'none'}")
+          print()
+          if plan.get("request") is None:
+              print("No cloud change is required.")
+          else:
+              print("The complete request is stored in the workflow artifact for review.")
+          PY
+
+      - name: Upload reviewed plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: offer-plan-${{ inputs.cloud }}-${{ inputs.app }}-${{ github.run_id }}
+          path: /tmp/opencode/offer-run/
+          if-no-files-found: error
+
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.cloud }}-marketplace-production
+    env:
+      APP: ${{ inputs.app }}
+      APP_NAME: ${{ inputs.app_name || inputs.app }}
+      CLOUD: ${{ inputs.cloud }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install CLI
+        run: python -m pip install --disable-pip-version-check '.[aws]'
+
+      - name: Download reviewed plan
+        uses: actions/download-artifact@v4
+        with:
+          name: offer-plan-${{ inputs.cloud }}-${{ inputs.app }}-${{ github.run_id }}
+          path: /tmp/opencode/offer-run
+
+      - name: Check cloud support
+        run: |
+          if [[ "$CLOUD" != "aws" ]]; then
+            echo "::error::Only cloud=aws is implemented by the current apply workflow."
+            exit 1
+          fi
+
+      - name: Check AWS apply role
+        env:
+          AWS_APPLY_ROLE_ARN: ${{ vars.AWS_APPLY_ROLE_ARN }}
+        run: |
+          if [[ -z "$AWS_APPLY_ROLE_ARN" ]]; then
+            echo "::error::Configure AWS_APPLY_ROLE_ARN as a variable on the $CLOUD-marketplace-production environment."
+            exit 1
+          fi
+          if [[ ! "$AWS_APPLY_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/.+$ ]]; then
+            echo "::error::AWS_APPLY_ROLE_ARN must be an IAM role ARN."
+            exit 1
+          fi
+
+      - name: Configure write AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: MarketplaceOfferApply-${{ github.run_id }}
+
+      - name: Apply reviewed plan
+        run: |
+          mk offer apply \
+            --app "$APP" \
+            --catalog /tmp/opencode/offer-run/catalog.json \
+            --versions /tmp/opencode/offer-run/apps-verson.json \
+            --plan /tmp/opencode/offer-run/plan.json \
+            --wait-seconds 600

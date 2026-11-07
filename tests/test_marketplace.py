@@ -15,8 +15,13 @@ class ConfigTests(unittest.TestCase):
     def test_marketplace_config_is_complete(self) -> None:
         config = app_list.CONFIG
         self.assertTrue(config["sources"]["offer"].startswith("https://"))
-        self.assertTrue(config["sources"]["catalog"].startswith("https://"))
-        self.assertTrue(config["sources"]["versions"].startswith("https://"))
+        self.assertNotIn("catalog", config["sources"])
+        self.assertNotIn("versions", config["sources"])
+
+        app_config = app_list.APP_CONFIG
+        self.assertTrue(app_config["sources"]["catalog"].startswith("https://"))
+        self.assertTrue(app_config["sources"]["versions"].startswith("https://"))
+        self.assertIn("odoo", app_config["multi_version_apps"])
 
         product_platforms = tuple(
             item["key"] for item in config["platforms"] if item.get("urlTemplate")

@@ -1,9 +1,7 @@
 {
   "version": 1,
   "sources": {
-    "offer": "https://artifact.websoft9.com/cloud_data/offer.json",
-    "catalog": "https://artifact.websoft9.com/appstore/release/catalog/product_en.json",
-    "versions": "https://artifact.websoft9.com/appstore/dev/library/apps-verson.json"
+    "offer": "https://artifact.websoft9.com/cloud_data/offer.json"
   },
   "platforms": [
     {

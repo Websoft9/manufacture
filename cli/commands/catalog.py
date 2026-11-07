@@ -32,7 +32,7 @@ def catalog_command() -> None:
               help="Contentful locale for the English fields.")
 @click.option("--id-field", default="key", show_default=True,
               help="Contentful field containing the application id (for example wordpress).")
-@click.option("--fields", "field_list", default="trademark,overview,keywords,usecases,summary", show_default=True,
+@click.option("--fields", "field_list", default="trademark,overview,keywords,usecases,components,summary,hasenterprise", show_default=True,
               help="Comma-separated Contentful field ids to include.")
 @click.option("--catalog", "catalog_source", default=CATALOG_URL, show_default=True, metavar="SOURCE",
               help="product_en.json URL or local path; only these application ids are returned.")
@@ -167,9 +167,10 @@ def push_command(
 ) -> None:
     """Push repository/catalog changes to Contentful drafts (and optionally publish).
 
-    Only trademark, overview, keywords, usecases and summary are written. Empty
-    values are skipped unless --clear is used. Writes use the entry's current
-    version, so concurrent Contentful edits fail instead of being overwritten.
+    Only trademark, overview, keywords, usecases, components, summary and
+    hasenterprise are written. Empty values are skipped unless --clear is used. Writes use the
+    entry's current version, so concurrent Contentful edits fail instead of
+    being overwritten.
     """
     app_ids = None if app_list is None else tuple(item.strip() for item in app_list.split(",") if item.strip())
     if app_list is not None and not app_ids:

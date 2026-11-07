@@ -15,7 +15,7 @@ from typing import Any, Callable
 from .contentful import ContentfulError, USER_AGENT, _field_matcher, select_target_keys
 
 DEFAULT_API_URL = "https://api.contentful.com"
-ALLOWED_INPUT_FIELDS = ("trademark", "overview", "keywords", "usecases", "summary")
+ALLOWED_INPUT_FIELDS = ("trademark", "overview", "keywords", "usecases", "components", "summary", "hasenterprise")
 Progress = Callable[[str], None]
 
 
@@ -112,8 +112,8 @@ def fetch_schema(
 
 
 def fetch_entries(
-    *, token: str, space_id: str, environment: str, content_type: str,
-    keys: tuple[str, ...] | None = None,
+    *, token: str, space_id: str, environment: str, content_type: str | None = None,
+    keys: tuple[str, ...] | None = None, ids: tuple[str, ...] | None = None,
     api_url: str = DEFAULT_API_URL, page_size: int = 1000, timeout: float = 30,
     progress: Progress | None = None,
 ) -> list[dict[str, Any]]:
@@ -124,7 +124,11 @@ def fetch_entries(
     total: int | None = None
     base = f"{_base_url(api_url, space_id, environment)}/entries"
     while True:
-        params = {"content_type": content_type, "limit": page_size, "skip": skip}
+        params = {"limit": page_size, "skip": skip}
+        if content_type:
+            params["content_type"] = content_type
+        if ids:
+            params["sys.id[in]"] = ",".join(ids)
         if keys:
             if len(keys) == 1:
                 params["fields.key"] = keys[0]
@@ -187,6 +191,10 @@ def _validate_value(name: str, value: Any, meta: dict[str, Any]) -> None:
         if meta.get("items", {}).get("type") not in {None, "", "Symbol"}:
             raise ContentfulError(f"{name} uses an unsupported array item type.")
         return
+    if field_type == "Boolean":
+        if value is not None and not isinstance(value, bool):
+            raise ContentfulError(f"{name} must be a boolean.")
+        return
     raise ContentfulError(f"{name} uses unsupported Contentful field type {field_type!r}.")
 
 
@@ -219,7 +227,8 @@ def build_changes(
             skipped.append(name)
             continue
         if empty:
-            value = [] if meta.get("type") == "Array" else ""
+            field_type = meta.get("type")
+            value = [] if field_type == "Array" else False if field_type == "Boolean" else ""
         localized = bool(meta.get("localized"))
         raw = fields.get(schema_field)
         # CMA returns fields as locale-keyed dictionaries, including some

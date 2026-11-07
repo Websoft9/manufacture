@@ -21,7 +21,7 @@ A Websoft9 automated operations project for mainstream cloud marketplaces. It ma
 
 - `site/` is the project [dashboard](https://websoft9.github.io/marketplace), a visual operations data analysis system.
 - Multiple workflows automatically check product versions, content, and compliance, then trigger manual decisions and optimization.
-- **更新 AWS 商品信息**：应用事实临时存放在 `data/.catalog/catalog.json`，仓库只维护模板、vendor 文案和 AWS 规则。使用 `mk offer build --app <key> --cloud aws` 生成离线审核文档，再用 `mk offer plan` 生成线上绑定的发布计划。旧的基于 Issue 的产品文件流程已暂停。详见[说明](specs/marketplace-offer-update-workflow.md)和 [Odoo 首次测试准备](specs/odoo-first-publication.md)。
+- **更新 AWS 商品信息**：应用事实临时存放在 `data/.catalog/catalog.json`，仓库只维护模板、vendor 文案和 AWS 规则。使用 `mk offer build --app <key> --cloud aws` 生成离线审核文档，再用 `mk offer plan` 生成线上绑定的发布计划。也可手动运行 **Marketplace Offer Apply** workflow：先生成 plan，再经 `aws-marketplace-production` 环境人工审批后执行 apply。旧的基于 Issue 的产品文件流程已暂停。详见[说明](specs/marketplace-offer-update-workflow.md)和 [Odoo 首次测试准备](specs/odoo-first-publication.md)。
 
 ## For Developer
 

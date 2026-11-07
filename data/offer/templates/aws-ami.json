@@ -1,6 +1,12 @@
 {
   "schemaVersion": 1,
   "templateId": "aws-ami-v1",
+  "boldLongDescriptionHeadings": true,
+  "namespaces": [
+    "catalog",
+    "versions",
+    "vendor"
+  ],
   "target": {
     "platform": "aws",
     "service": "marketplace-catalog",
@@ -9,7 +15,7 @@
   },
   "AdditionalResources": [
     {
-      "Text": "{catalog.name} Image Guide by Websoft9",
+      "Text": "{catalog.trademark} Image Guide by Websoft9",
       "Url": "https://support.websoft9.com/en/docs/{catalog.id}"
     },
     {
@@ -18,32 +24,32 @@
     }
   ],
   "content": {
-    "ProductTitle": "{catalog.name} on AWS - Preconfigured, Hardened, Ready in Minutes",
-    "ShortDescription": "Deploy self-hosted {catalog.name} Community Edition on AWS. {catalog.summary} {vendor.consoleSummary}",
+    "ProductTitle": "{catalog.trademark} on AWS - Preconfigured, Hardened, Ready in Minutes",
+    "ShortDescription": "{versions.multi ? 'Choose from ' : 'Deploy '}{catalog.trademark} {versions.multi ? versions.shortChoices : versions.version}{versions.multi ? ' at launch' : ''} for self-hosting without upstream forks, backed by a 24-hour response SLA on business days. Use the Websoft9 Console to manage HTTPS, backups, monitoring, upgrades, and rollback.",
     "Highlights": [
       "{vendor.highlights[0]}",
       "{vendor.highlights[1]}",
       "{vendor.highlights[2]}"
     ],
-    "SearchKeywords": "{catalog.searchKeywords}",
-    "SupportDescription": "{vendor.supportSummary}\nContact: {vendor.supportContact}\n{vendor.supportScope}"
+    "SearchKeywords": "{catalog.keywords}",
+    "SupportDescription": "{vendor.supportSummary}\nContact: {vendor.supportContact}\n{vendor.supportScope} AWS infrastructure is billed separately."
   },
   "longDescriptionSections": [
     {
       "heading": "",
-      "text": "{catalog.name} {catalog.version} runs on AWS for self-hosted deployment. {catalog.summary} {vendor.consoleSummary}"
+      "text": "This product packages {catalog.trademark}{catalog.hasenterprise ? ' Community Edition' : ''} as a hardened AMI for self-hosted deployment on AWS. Websoft9 adds a Console for HTTPS, backups, monitoring, upgrades with rollback, and application lifecycle management, plus one-click templates from its built-in app store."
     },
     {
       "heading": "What is included?",
-      "text": "{catalog.includedComponentsText}"
+      "text": "{catalog.trademark}{catalog.hasenterprise ? ' Community Edition' : ''}{versions.selection}, {catalog.components | join: ', ', ', '}Nginx, Docker and {vendor.vendor} Console."
     },
     {
       "heading": "Use cases",
-      "text": "{catalog.useCasesText}"
+      "text": "{catalog.usecases | join: '; '}."
     },
     {
       "heading": "What you pay for",
-      "text": "{vendor.billingSummary}"
+      "text": "{catalog.hasenterprise ? 'This offer provides the Community Edition of the application. It does not include any commercial edition.' : 'No separate license fee is charged for the Community Edition.'} {vendor.billingSummary} AWS infrastructure charges are billed separately by AWS."
     },
     {
       "heading": "Do I need SSH?",
@@ -51,15 +57,27 @@
     },
     {
       "heading": "Trademark statement",
-      "text": "{vendor.trademarkStatement}"
+      "text": "{catalog.trademark} {vendor.trademarkStatement}"
     },
     {
-      "heading": "About {catalog.name}",
+      "heading": "About {catalog.trademark}",
       "text": "{catalog.overview}"
     },
     {
       "heading": "About Websoft9",
       "text": "{vendor.aboutVendor}"
+    }
+  ],
+  "previewOnlySections": [
+    {
+      "id": "usage",
+      "heading": "Usage",
+      "text": "1. Launch the AMI with 1-Click and copy the instance's Public IPv4 address from the EC2 Console.\n\n2. Open https://<EC2_PUBLIC_IP>:9000 and complete the setup wizard — no SSH login, password lookup, or manual password generation.\n\n3. Use the Websoft9 Console to deploy applications, bind domains, enable HTTPS, and manage backups and monitoring. The Console shows the access URL and port for each application.\n\nNote: Allow inbound TCP 80/443 (web/HTTPS) and 9000 (Websoft9 Console); open additional ports such as 9001 only if required by your applications."
+    },
+    {
+      "id": "refunds",
+      "heading": "Refunds",
+      "text": "This product is billed based on actual EC2 instance usage hours. You may terminate your instance at any time to stop all charges. No refunds are issued for partial usage periods already billed. For billing questions or disputes, contact operation@websoft9.com before opening a claim through AWS Marketplace."
     }
   ]
 }

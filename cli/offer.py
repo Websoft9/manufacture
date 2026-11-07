@@ -8,8 +8,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator, FormatChecker
-
 from .aws_marketplace import (
     CONTENT_FIELDS as FIELDS,
     FIELD_LIMITS as LIMITS,
@@ -19,6 +17,7 @@ from .aws_marketplace import (
     change_status,
     current_content,
 )
+from .marketplace import MULTI_VERSION_APPS
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "offer"
@@ -32,7 +31,7 @@ def digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
-PLACEHOLDER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_.]*(?:\[\d+\])*)\}")
+PLACEHOLDER = re.compile(r"\{([^{}]+)\}")
 
 
 def resolve_placeholder(path: str, roots: dict[str, Any]) -> Any:
@@ -48,23 +47,122 @@ def resolve_placeholder(path: str, roots: dict[str, Any]) -> Any:
     return current
 
 
+def _find_outside(text: str, target: str) -> int:
+    quote = None
+    escaped = False
+    for index, character in enumerate(text):
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\":
+            escaped = True
+            continue
+        if quote:
+            if character == quote:
+                quote = None
+            continue
+        if character in "'\"":
+            quote = character
+        elif character == target:
+            return index
+    return -1
+
+
+def _split_outside(text: str, separator: str) -> list[str]:
+    parts: list[str] = []
+    start = 0
+    while True:
+        index = _find_outside(text[start:], separator)
+        if index == -1:
+            parts.append(text[start:])
+            return parts
+        index += start
+        parts.append(text[start:index])
+        start = index + len(separator)
+
+
+def _unquote(text: str) -> str:
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return text[1:-1]
+    return text
+
+
+def _evaluate_operand(text: str, roots: dict[str, Any]) -> Any:
+    text = text.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return _unquote(text)
+    return evaluate_expression(text, roots)
+
+
+def evaluate_expression(expression: str, roots: dict[str, Any]) -> Any:
+    expression = expression.strip()
+    question = _find_outside(expression, "?")
+    if question != -1:
+        condition = expression[:question].strip()
+        remainder = expression[question + 1:]
+        colon = _find_outside(remainder, ":")
+        if colon == -1:
+            raise ValueError(f"invalid conditional template expression: {expression}")
+        return (
+            _evaluate_operand(remainder[:colon], roots)
+            if evaluate_expression(condition, roots)
+            else _evaluate_operand(remainder[colon + 1:], roots)
+        )
+    parts = _split_outside(expression, "|")
+    value = resolve_placeholder(parts[0].strip(), roots)
+    for filter_expression in parts[1:]:
+        name, _, argument = filter_expression.partition(":")
+        if name.strip() != "join":
+            raise ValueError(f"unsupported template filter: {name.strip()}")
+        if not isinstance(value, list):
+            raise ValueError("join filter requires an array value")
+        arguments = [_unquote(item.strip()) for item in _split_outside(argument, ",")]
+        separator = arguments[0] if arguments else ", "
+        suffix = arguments[1] if len(arguments) > 1 else ""
+        joined = separator.join(str(item) for item in value)
+        value = joined + suffix if joined else joined
+    return value
+
+
 def format_template(text: str, roots: dict[str, Any]) -> Any:
     match = PLACEHOLDER.fullmatch(text.strip())
     if match:
-        return resolve_placeholder(match.group(1), roots)
-    return PLACEHOLDER.sub(lambda item: str(resolve_placeholder(item.group(1), roots)), text)
+        return evaluate_expression(match.group(1), roots)
+    return PLACEHOLDER.sub(lambda item: str(evaluate_expression(item.group(1), roots)), text)
 
 
-def render(product_path: Path | dict, vendor_path: Path = DATA / "vendor.json", template_path: Path = DATA / "templates/aws-ami.json") -> dict:
-    product = read_json(product_path) if isinstance(product_path, (str, Path)) else product_path
-    schema = read_json(DATA / "product.schema.json")
-    errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(product), key=lambda error: str(error.path))
-    if errors:
-        raise ValueError("; ".join(f"{'.'.join(map(str, error.path))}: {error.message}" for error in errors))
+def display_version(value: str) -> str:
+    """Keep at most two dotted components for listing display."""
+    text = str(value).strip()
+    parts = text.split(".")
+    return ".".join(parts[:2]) if len(parts) > 2 else text
+
+
+def version_choices(options: list[str]) -> str:
+    values = [display_version(item) for item in options]
+    if not values:
+        return ""
+    if len(values) == 1:
+        return values[0]
+    if len(values) == 2:
+        return f"{values[0]} or {values[1]}"
+    return ", ".join(values[:-1]) + f", or {values[-1]}"
+
+
+def render(catalog_item: dict, version: str, vendor_path: Path = DATA / "vendor.json", template_path: Path = DATA / "templates/aws-ami.json", version_options: list[str] | None = None) -> dict:
     vendor, template = read_json(vendor_path), read_json(template_path)
-    listing, app = product["listings"]["aws"], product["application"]
-    if template.get("templateId") != listing["templateId"] or template.get("schemaVersion") != 1:
+    options = [str(item).strip() for item in (version_options or [])]
+    options = [display_version(item) for item in options if item and item.casefold() != "latest"]
+    options = list(dict.fromkeys(options))
+    multi_version = catalog_item.get("id") in MULTI_VERSION_APPS and len(options) >= 2
+    selection = f" {'/'.join(options)} for selection" if multi_version else ""
+    namespaces = template.get("namespaces")
+    if not isinstance(namespaces, list) or not namespaces or any(not isinstance(namespace, str) or not namespace for namespace in namespaces):
+        raise ValueError("template.namespaces must contain at least one namespace")
+    template_id = catalog_item.get("templateId") or "aws-ami-v1"
+    if template.get("templateId") != template_id or template.get("schemaVersion") != 1:
         raise ValueError("unsupported or mismatched template")
+    entity_type = catalog_item.get("entityType") or "AmiProduct@1.0"
     vendor_fields = (
         "aboutVendor",
         "billingSummary",
@@ -83,29 +181,30 @@ def render(product_path: Path | dict, vendor_path: Path = DATA / "vendor.json", 
         not isinstance(item, str) or not item.strip() for item in highlights
     ):
         raise ValueError("vendor.highlights must contain 1–3 non-empty strings")
-    application = {
-        **app,
-        "id": product["key"],
-        "includedComponentsText": ", ".join(app["includedComponents"]) + ".",
-        "useCasesText": "; ".join(app["useCases"]) + ".",
-    }
-    roots = {
-        **app,
-        **{field: vendor[field] for field in vendor_fields},
-        "includedComponents": application["includedComponentsText"],
-        "useCases": application["useCasesText"],
-        "key": product["key"],
-        "product": product,
-        "catalog": application,
-        "application": application,
+    catalog_values = dict(catalog_item)
+    if not isinstance(catalog_values.get("hasenterprise"), bool):
+        catalog_values["hasenterprise"] = True
+    available = {
+        "catalog": catalog_values,
+        "versions": {
+            "id": catalog_item.get("id"),
+            "version": display_version(version) if version else "",
+            "selection": selection,
+            "multi": multi_version,
+            "shortChoices": version_choices(options),
+        },
         "vendor": vendor,
-        "aws": listing,
     }
+    roots = {}
+    for namespace in namespaces:
+        if namespace not in available:
+            raise ValueError(f"template namespace has no source: {namespace}")
+        roots[namespace] = available[namespace]
     target = template.get("target") or {}
     if target:
         if target.get("platform") not in (None, "aws"):
             raise ValueError("template target.platform must be aws")
-        if target.get("entityType") not in (None, listing["entityType"]):
+        if target.get("entityType") not in (None, entity_type):
             raise ValueError("template target.entityType does not match the listing")
         if target.get("changeType") not in (None, "UpdateInformation"):
             raise ValueError("template target.changeType must be UpdateInformation")
@@ -117,35 +216,43 @@ def render(product_path: Path | dict, vendor_path: Path = DATA / "vendor.json", 
         }
         for section in template["longDescriptionSections"]
     ]
+    heading_format = "**{}**" if template.get("boldLongDescriptionHeadings") else "{}"
     content["LongDescription"] = "\n\n".join(
-        (section["heading"] + "\n" if section["heading"] else "") + section["text"]
+        (heading_format.format(section["heading"]) + "\n" if section["heading"] else "") + section["text"]
         for section in rendered_sections
     )
+    preview_only_template = template.get("previewOnlySections") or []
+    if not isinstance(preview_only_template, list):
+        raise ValueError("template.previewOnlySections must be an array")
+    preview_only_sections = []
+    for section in preview_only_template:
+        if not isinstance(section, dict) or set(section) != {"id", "heading", "text"}:
+            raise ValueError("template.previewOnlySections items require id, heading and text")
+        preview_only_sections.append(
+            {
+                "id": format_template(section["id"], roots),
+                "heading": format_template(section["heading"], roots),
+                "text": format_template(section["text"], roots),
+            }
+        )
     for field in ("Categories", "VideoUrls"):
         if not content.get(field):
             content.pop(field, None)
     if not content.get("LogoUrl"):
         content.pop("LogoUrl", None)
-    for field, path in template.get("fieldSources", {}).items():
-        current = roots
-        for part in str(path).split("."):
-            if not isinstance(current, dict) or part not in current:
-                raise ValueError(f"template fieldSources.{field} path not found: {path}")
-            current = current[part]
-        content[field] = current
-    content.setdefault("SearchKeywords", app["searchKeywords"])
     resources = template.get("AdditionalResources", template.get("additionalResources")) or []
     if resources:
         content["AdditionalResources"] = [
             {key: format_template(str(value), roots) for key, value in item.items()} for item in resources
         ]
-    content.update(listing["contentOverrides"])
+    content.update(catalog_item.get("contentOverrides") or {})
     # Absent optional fields preserve the current AWS value. Empty arrays never clear it implicitly.
     validate_content(content)
     blockers = []
-    if not app.get("version"):
-        blockers.append("catalog: version is missing")
-    if not listing["entityId"]:
+    if not version:
+        blockers.append("versions: version is missing")
+    entity_id = catalog_item.get("entityId")
+    if not entity_id:
         blockers.append("listing: Catalog EntityId is missing")
     preview_content = {
         key: value
@@ -159,12 +266,13 @@ def render(product_path: Path | dict, vendor_path: Path = DATA / "vendor.json", 
         "AdditionalResources": content.get("AdditionalResources", []),
         "content": preview_content,
         "longDescriptionSections": rendered_sections,
+        "previewOnlySections": preview_only_sections,
     }
     return {
-        "schemaVersion": 1, "key": product["key"], "entityId": listing["entityId"], "entityType": listing["entityType"],
+        "schemaVersion": 1, "key": catalog_item["id"], "entityId": entity_id, "entityType": entity_type,
         "templateId": template["templateId"], "content": content, "preview": preview,
         "publishBlockers": blockers,
-        "sourceHash": digest({"product": product, "vendor": vendor, "template": template}),
+        "sourceHash": digest({"catalog": catalog_item, "version": version, "vendor": vendor, "template": template}),
     }
 
 

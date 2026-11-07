@@ -31,7 +31,7 @@ The Aliyun integration uses Market API `2015-11-01` `DescribeProduct` for each c
 
 ## Offer List target versions
 
-The Marketplace Offer List reads target application versions from `sources.versions` in `config/marketplace.json` (the `apps-version.json` source keyed by application ID). Product codes are mapped to application IDs through `offer.json`; a product without a unique mapping shows `-` instead of guessing a target version.
+The Marketplace Offer List reads target application versions from `sources.versions` in `config/app.json` (the `apps-verson.json` source keyed by application ID). Product codes are mapped to application IDs through `offer.json`; a product without a unique mapping shows `-` instead of guessing a target version.
 
 The Offer List also shows the first sentence of the product short description, whether the product has an image, and an update suggestion. The suggestion compares Offer Version with Target Version: a newer target produces `Need Update`, an older target produces `Check Target`, an equal version produces `Up to date`, and missing/unparsable values produce `-`.
 

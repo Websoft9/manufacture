@@ -35,12 +35,14 @@ def inputs(function):
 
 def bundle(app, catalog_source, versions, vendor, template):
     try:
-        runtime = catalog_data.load_runtime_product(
+        item, version, version_options = catalog_data.load_application(
             key=app,
             catalog_source=catalog_source or str(catalog_default_path()),
             versions_source=versions,
         )
-        return service.render(runtime, vendor, template)
+        return service.render(
+            item, version, vendor, template, version_options=version_options
+        )
     except Exception as error:
         raise click.ClickException(f"invalid offer data: {error}") from error
 
@@ -77,6 +79,13 @@ def preview_markdown(preview):
     if sections:
         lines.extend(["## Long description", ""])
         for section in sections:
+            if section.get("heading"):
+                lines.extend([f"### {section['heading']}", ""])
+            lines.extend([section.get("text", ""), ""])
+    reference_sections = preview.get("previewOnlySections") or []
+    if reference_sections:
+        lines.extend(["## Reference sections (not submitted)", ""])
+        for section in reference_sections:
             if section.get("heading"):
                 lines.extend([f"### {section['heading']}", ""])
             lines.extend([section.get("text", ""), ""])

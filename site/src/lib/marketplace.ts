@@ -47,10 +47,17 @@ interface MarketplaceConfig {
   version: number;
   sources: {
     offer: string;
-    catalog: string;
   };
   platforms: PlatformConfig[];
   routing: Record<string, PlatformRoute>;
+}
+
+interface AppConfig {
+  sources: {
+    catalog: string;
+    versions?: string;
+  };
+  multi_version_apps?: string[];
 }
 
 export interface ProductLink {
@@ -135,6 +142,10 @@ const CONFIG_PATH =
   findRepoFile(process.cwd(), join("config", "marketplace.json"));
 const CONFIG = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as MarketplaceConfig;
 
+const APP_CONFIG_PATH =
+  process.env.MK_APP_CONFIG_PATH ?? join(dirname(CONFIG_PATH), "app.json");
+const APP_CONFIG = JSON.parse(readFileSync(APP_CONFIG_PATH, "utf8")) as AppConfig;
+
 function isProductPlatform(platform: PlatformConfig): platform is ProductPlatformConfig {
   return (
     typeof platform.urlTemplate === "string" &&
@@ -173,7 +184,7 @@ const ENV = (
 ).process?.env;
 
 export const OFFER_URL = ENV?.MK_OFFER_URL ?? CONFIG.sources.offer;
-export const CATALOG_URL = ENV?.MK_CATALOG_URL ?? CONFIG.sources.catalog;
+export const CATALOG_URL = ENV?.MK_CATALOG_URL ?? APP_CONFIG.sources.catalog;
 
 const PRODUCT_PLATFORMS = CONFIG.platforms.filter(isProductPlatform);
 const OVERVIEW_PLATFORMS = CONFIG.platforms.filter(

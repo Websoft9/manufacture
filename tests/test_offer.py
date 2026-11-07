@@ -25,6 +25,7 @@ class OfferTests(unittest.TestCase):
         self.item = copy.deepcopy(next(item for item in catalog["items"] if item["id"] == "odoo"))
         self.item.update({
             "entityId": None,
+            "hasenterprise": False,
             "templateId": "aws-ami-v1",
             "locale": "en-US",
             "contentOverrides": {},
@@ -48,13 +49,8 @@ class OfferTests(unittest.TestCase):
         self.versions_path.write_text(json.dumps([{"id": "odoo", "version": "20.0"}]), encoding="utf-8")
         self.vendor_path.write_text(json.dumps(self.vendor_data), encoding="utf-8")
 
-    def runtime(self):
-        return catalog_data.build_runtime_product(
-            key="odoo", item=self.item, version="20.0",
-        )
-
     def render(self):
-        return offer.render(self.runtime(), self.vendor_path)
+        return offer.render(self.item, "20.0", self.vendor_path)
 
     def set_entity_id(self):
         self.item["entityId"] = "prod-example12345"
@@ -76,15 +72,211 @@ class OfferTests(unittest.TestCase):
         ]
 
     def test_example_is_consistent_draft_and_publish_check_fails(self):
+        self.item["hasenterprise"] = True
+        self.write()
         value = self.render()
-        self.assertIn("Odoo Community Edition", value["content"]["ShortDescription"])
-        self.assertIn("20.0", value["content"]["LongDescription"])
+        self.assertIn("Deploy Odoo 20.0", value["content"]["ShortDescription"])
+        self.assertNotIn("Community Edition", value["content"]["ShortDescription"])
+        self.assertIn(
+            "This product packages Odoo Community Edition as a hardened AMI",
+            value["content"]["LongDescription"],
+        )
+        self.assertIn(
+            "Odoo is a trademark of its respective owner",
+            value["content"]["LongDescription"],
+        )
         self.assertNotIn("Jupyter", str(value["content"]))
         self.assertEqual(value["publishBlockers"], ["listing: Catalog EntityId is missing"])
         result = self.runner.invoke(
             cli, self.args("build") + ["--cloud", "aws", "--publish-ready"]
         )
         self.assertNotEqual(result.exit_code, 0)
+
+    def test_short_description_uses_multi_version_choice(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        value = offer.render(
+            self.item,
+            "20.0",
+            self.vendor_path,
+            version_options=["20.0", "19.0", "18.0", "17.0", "latest"],
+        )
+        self.assertEqual(
+            value["content"]["ShortDescription"],
+            "Choose from Odoo 20.0, 19.0, 18.0, or 17.0 at launch for self-hosting "
+            "without upstream forks, backed by a 24-hour response SLA on business days. "
+            "Use the Websoft9 Console to manage HTTPS, backups, monitoring, "
+            "upgrades, and rollback.",
+        )
+
+    def test_short_description_uses_single_version(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        value = offer.render(
+            self.item,
+            "20.0",
+            self.vendor_path,
+            version_options=["20.0", "latest"],
+        )
+        self.assertEqual(
+            value["content"]["ShortDescription"],
+            "Deploy Odoo 20.0 for self-hosting without upstream forks, backed by "
+            "a 24-hour response SLA on business days. Use the Websoft9 Console "
+            "to manage HTTPS, backups, monitoring, upgrades, and rollback.",
+        )
+
+    def test_components_are_inserted_before_nginx_and_docker(self):
+        self.item["components"] = []
+        self.item["hasenterprise"] = True
+        self.write()
+        empty_included = next(
+            section["text"]
+            for section in self.render()["preview"]["longDescriptionSections"]
+            if section["heading"] == "What is included?"
+        )
+        self.assertEqual(
+            empty_included,
+            "Odoo Community Edition, Nginx, Docker and Websoft9 Console.",
+        )
+        self.item["components"] = ["PostgreSQL", "pgAdmin"]
+        self.write()
+        included = next(
+            section["text"]
+            for section in self.render()["preview"]["longDescriptionSections"]
+            if section["heading"] == "What is included?"
+        )
+        self.assertEqual(
+            included,
+            "Odoo Community Edition, PostgreSQL, pgAdmin, Nginx, Docker and Websoft9 Console.",
+        )
+
+    def test_multi_version_apps_append_selection_to_included(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        value = offer.render(
+            self.item, "20.0", self.vendor_path, version_options=["20", "19", "18"]
+        )
+        included = next(
+            section["text"]
+            for section in value["preview"]["longDescriptionSections"]
+            if section["heading"] == "What is included?"
+        )
+        self.assertIn("Odoo Community Edition 20/19/18 for selection,", included)
+
+    def test_latest_is_excluded_from_version_selection(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        value = offer.render(
+            self.item, "20.0", self.vendor_path, version_options=["20", "latest", "19"]
+        )
+        included = next(
+            section["text"]
+            for section in value["preview"]["longDescriptionSections"]
+            if section["heading"] == "What is included?"
+        )
+        self.assertIn("Odoo Community Edition 20/19 for selection,", included)
+        self.assertNotIn("latest", included)
+
+    def test_single_version_or_non_multi_app_has_no_selection(self):
+        single = offer.render(
+            self.item, "20.0", self.vendor_path, version_options=["20"]
+        )
+        texts = [section["text"] for section in single["preview"]["longDescriptionSections"]]
+        self.assertFalse(any("for selection" in text for text in texts))
+
+        with mock.patch.object(offer, "MULTI_VERSION_APPS", frozenset()):
+            other = offer.render(
+                self.item, "20.0", self.vendor_path, version_options=["20", "19"]
+            )
+        texts = [section["text"] for section in other["preview"]["longDescriptionSections"]]
+        self.assertFalse(any("for selection" in text for text in texts))
+
+    def test_display_version_keeps_at_most_two_components(self):
+        self.assertEqual(offer.display_version("20.0.1"), "20.0")
+        self.assertEqual(offer.display_version("v2026.9.24"), "v2026.9")
+        self.assertEqual(offer.display_version("19.0"), "19.0")
+        self.assertEqual(offer.display_version("18"), "18")
+        self.assertEqual(offer.display_version("v3-core"), "v3-core")
+
+    def test_multi_version_selection_uses_display_versions(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        value = offer.render(
+            self.item,
+            "20.0.1",
+            self.vendor_path,
+            version_options=["20.0.1", "19.0.2", "19.0.3", "latest"],
+        )
+        included = next(
+            section["text"]
+            for section in value["preview"]["longDescriptionSections"]
+            if section["heading"] == "What is included?"
+        )
+        self.assertIn("Odoo Community Edition 20.0/19.0 for selection,", included)
+        self.assertNotIn("20.0.1", value["content"]["LongDescription"])
+
+    def test_load_versions_accepts_single_value_and_lists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "versions.json"
+            path.write_text(
+                json.dumps(
+                    [
+                        {"id": "odoo", "version": ["20", "19"]},
+                        {"id": "mysql", "version": "26.10"},
+                        {"id": "redis", "versions": ["8", "7"]},
+                        {"id": "no-version"},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                catalog_data.load_versions(str(path)),
+                {"odoo": ["20", "19"], "mysql": ["26.10"], "redis": ["8", "7"]},
+            )
+
+    def test_long_description_edition_follows_hasenterprise(self):
+        self.item["hasenterprise"] = False
+        self.write()
+        community = self.render()["preview"]["longDescriptionSections"][0]["text"]
+        self.assertIn(
+            "This product packages Odoo as a hardened AMI",
+            community,
+        )
+        self.assertNotIn("Community Edition", community)
+        self.item["hasenterprise"] = True
+        self.write()
+        enterprise = self.render()["preview"]["longDescriptionSections"][0]["text"]
+        self.assertIn(
+            "This product packages Odoo Community Edition as a hardened AMI",
+            enterprise,
+        )
+
+    def test_hasenterprise_uses_open_source_offer_wording(self):
+        self.item["hasenterprise"] = True
+        self.write()
+        pricing = next(
+            section["text"]
+            for section in self.render()["preview"]["longDescriptionSections"]
+            if section["heading"] == "What you pay for"
+        )
+        self.assertIn(
+            "This offer provides the Community Edition of the application. "
+            "It does not include any commercial edition.",
+            pricing,
+        )
+        self.assertNotIn("provided under its commercial edition", pricing)
+
+    def test_short_description_does_not_use_hasenterprise_wording(self):
+        descriptions = set()
+        for value in (False, True, None, "missing"):
+            item = copy.deepcopy(self.item)
+            if value == "missing":
+                item.pop("hasenterprise", None)
+            else:
+                item["hasenterprise"] = value
+            descriptions.add(offer.render(item, "20.0")["content"]["ShortDescription"])
+        self.assertEqual(len(descriptions), 1)
+        self.assertNotIn("Community Edition", descriptions.pop())
 
     def test_publish_ready_does_not_require_separate_verification_records(self):
         self.set_entity_id()
@@ -115,9 +307,28 @@ class OfferTests(unittest.TestCase):
             {"Text": "Install Websoft9 on AWS", "Url": "https://support.websoft9.com/en/docs/install-aws"},
         ])
         self.assertEqual(
-            [section["text"] for section in document["longDescriptionSections"] if section["text"].startswith("The software fee")],
-            ["The software fee covers the Websoft9 Console, operations tools, and support. AWS infrastructure is billed separately."],
+            [section["text"] for section in document["longDescriptionSections"] if section["text"].startswith("No separate license fee")],
+            ["No separate license fee is charged for the Community Edition. The Websoft9 software fee covers the Console, operations toolset, and business-day support with a 24-hour response SLA. AWS infrastructure charges are billed separately by AWS."],
         )
+
+    def test_long_description_headings_use_markdown_bold(self):
+        value = self.render()
+        self.assertIn("**What is included?**\n", value["content"]["LongDescription"])
+        headings = [
+            section["heading"]
+            for section in value["preview"]["longDescriptionSections"]
+            if section["heading"]
+        ]
+        self.assertTrue(all("**" not in heading for heading in headings))
+
+    def test_preview_only_sections_are_not_submitted(self):
+        value = self.render()
+        reference = {item["id"]: item for item in value["preview"]["previewOnlySections"]}
+        self.assertEqual(set(reference), {"usage", "refunds"})
+        self.assertIn("Launch the AMI", reference["usage"]["text"])
+        self.assertIn("No refunds are issued", reference["refunds"]["text"])
+        self.assertNotIn("Launch the AMI", str(value["content"]))
+        self.assertNotIn("No refunds are issued", str(value["content"]))
 
     def test_template_fields_are_declared_in_aws_field_contract(self):
         template = offer.read_json(offer.DATA / "templates" / "aws-ami.json")
@@ -138,6 +349,8 @@ class OfferTests(unittest.TestCase):
         self.assertIn("Odoo on AWS - Preconfigured", text)
         self.assertIn("## Long description", text)
         self.assertIn("What you pay for", text)
+        self.assertIn("## Reference sections (not submitted)", text)
+        self.assertIn("### Refunds", text)
 
     def test_plan_writes_complete_plan_to_output(self):
         output = self.directory / "plan.json"
@@ -182,7 +395,7 @@ class OfferTests(unittest.TestCase):
         self.item["keywords"] = ["ERP"]
         self.item["contentOverrides"]["RefundPolicy"] = "foo"
         self.write()
-        with self.assertRaisesRegex(ValueError, "Additional properties"):
+        with self.assertRaisesRegex(ValueError, "unsupported"):
             self.render()
 
     def test_plan_noop_and_minimal_update_preserve_optional_fields(self):

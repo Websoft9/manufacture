@@ -45,6 +45,7 @@ class CatalogPullTests(unittest.TestCase):
             "keywords": ["Website", "CMS"],
             "tags": [link("Entry", "tag-cms")],
             "useCases": ["Blog", "CMS"],
+            "components": ["Nginx", "Docker"],
             "summary": "WordPress summary",
             "notRequested": "do not export",
         }, "wp-entry")
@@ -58,7 +59,9 @@ class CatalogPullTests(unittest.TestCase):
             "keywords": ["ERP", "Business"],
             "tags": ["ERP"],
             "usecases": ["Sales", "Inventory"],
+            "components": ["PostgreSQL", "pgAdmin"],
             "summary": "Odoo summary",
+            "hasEnterprise": True,
         }, "odoo-entry")
         self.ghost = entry({
             "key": "ghost",
@@ -68,6 +71,7 @@ class CatalogPullTests(unittest.TestCase):
             "tags": [],
             "usecases": ["Publishing"],
             "summary": "Ghost summary",
+            "hasEnterprise": False,
         }, "ghost-entry")
         self.extra = entry({"key": "not-in-catalog", "trademark": "Extra", "overview": "x", "keywords": [], "tags": [], "usecases": [], "summary": "x"})
         self.includes = {"Entry": [{"sys": {"id": "tag-cms", "type": "Entry"}, "fields": {"name": "CMS"}}]}
@@ -86,7 +90,9 @@ class CatalogPullTests(unittest.TestCase):
                 {"id": "keywords", "type": "Array"},
                 {"id": "tags", "type": "Array"},
                 {"id": "useCases", "type": "Array"},
+                {"id": "components", "type": "Array"},
                 {"id": "summary", "type": "Symbol"},
+                {"id": "hasenterprise", "type": "Boolean"},
             ]}
         query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
         self.assertEqual(query["content_type"], ["product"])
@@ -120,6 +126,11 @@ class CatalogPullTests(unittest.TestCase):
         self.assertEqual(dataset["items"][0]["keywords"], ["Website", "CMS"])
         self.assertEqual(dataset["items"][0]["usecases"], ["Blog", "CMS"])
         self.assertEqual(dataset["items"][1]["overview"], "Odoo overview\nSecond paragraph")
+        self.assertEqual(dataset["items"][0]["components"], ["Nginx", "Docker"])
+        self.assertEqual(dataset["items"][1]["components"], ["PostgreSQL", "pgAdmin"])
+        self.assertTrue(dataset["items"][0]["hasenterprise"])
+        self.assertTrue(dataset["items"][1]["hasenterprise"])
+        self.assertFalse(dataset["items"][2]["hasenterprise"])
         self.assertNotIn("notRequested", dataset["items"][0])
         self.assertNotIn("tags", dataset["items"][0])
         self.assertNotIn("missingFields", dataset)
@@ -197,7 +208,9 @@ class CatalogPullTests(unittest.TestCase):
             {"id": "key", "type": "Symbol"}, {"id": "trademark", "type": "Symbol"},
             {"id": "overview", "type": "Text"},
             {"id": "keywords", "type": "Array"}, {"id": "tags", "type": "Array"},
-            {"id": "useCases", "type": "Array"}, {"id": "summary", "type": "Symbol"},
+            {"id": "useCases", "type": "Array"},
+            {"id": "components", "type": "Array"}, {"id": "summary", "type": "Symbol"},
+            {"id": "hasenterprise", "type": "Boolean"},
         ]}
         def only_broken(url, token, timeout):
             if "/content_types/product" in url:
@@ -224,7 +237,9 @@ class CatalogPullTests(unittest.TestCase):
             {"id": "key", "type": "Symbol"}, {"id": "trademark", "type": "Symbol"},
             {"id": "overview", "type": "Text"},
             {"id": "keywords", "type": "Array"}, {"id": "tags", "type": "Array"},
-            {"id": "useCases", "type": "Array"}, {"id": "summary", "type": "Symbol"},
+            {"id": "useCases", "type": "Array"},
+            {"id": "components", "type": "Array"}, {"id": "summary", "type": "Symbol"},
+            {"id": "hasenterprise", "type": "Boolean"},
         ]}
         def api(url, token, timeout):
             if "/content_types/product" in url:
@@ -297,7 +312,9 @@ class CatalogPullTests(unittest.TestCase):
             "overview": {"type": "Text", "localized": True},
             "keywords": {"type": "Array", "localized": True},
             "useCases": {"type": "Array", "localized": False},
+            "components": {"type": "Array", "localized": False},
             "summary": {"type": "Symbol", "localized": True},
+            "hasEnterprise": {"type": "Boolean", "localized": False},
         }
         cma_entry = {"sys": {"id": "entry"}, "fields": {
             "key": {"en-US": "wordpress"},
@@ -305,7 +322,9 @@ class CatalogPullTests(unittest.TestCase):
             "overview": {"en-US": "WordPress overview"},
             "keywords": {"en-US": ["Website", "CMS"], "zh-CN": ["网站"]},
             "useCases": {"en-US": ["Blogging", "CMS"]},
+            "components": {"en-US": ["Nginx", "Docker"]},
             "summary": {"en-US": "WordPress summary"},
+            "hasEnterprise": {"en-US": True},
         }}
         with mock.patch("cli.contentful_management.fetch_schema", return_value=schema) as schema_call, \
              mock.patch("cli.contentful_management.fetch_entries", return_value=[cma_entry]) as entries_call, \
@@ -321,9 +340,46 @@ class CatalogPullTests(unittest.TestCase):
         item = dataset["items"][0]
         self.assertEqual(item["keywords"], ["Website", "CMS"])
         self.assertEqual(item["usecases"], ["Blogging", "CMS"])
+        self.assertEqual(item["components"], ["Nginx", "Docker"])
+        self.assertTrue(item["hasenterprise"])
         self.assertEqual(dataset["source"]["contentful"]["api"], "https://api.contentful.com")
         schema_call.assert_called_once()
         entries_call.assert_called_once()
+        cda.assert_not_called()
+
+    def test_cfpat_resolves_linked_component_names(self) -> None:
+        schema = {
+            "key": {"type": "Symbol", "localized": False},
+            "components": {"type": "Array", "localized": False},
+        }
+        top = {
+            "sys": {"id": "entry"},
+            "fields": {
+                "key": {"en-US": "wordpress"},
+                "components": {"en-US": [link("Entry", "comp-1"), link("Entry", "comp-2")]},
+            },
+        }
+        linked = [
+            {"sys": {"id": "comp-1"}, "fields": {"title": {"en-US": "PostgreSQL"}}},
+            {"sys": {"id": "comp-2"}, "fields": {"trademark": {"en-US": "pgAdmin"}}},
+        ]
+
+        def entries(**kwargs):
+            return linked if kwargs.get("ids") else [top]
+
+        with mock.patch("cli.contentful_management.fetch_schema", return_value=schema), \
+             mock.patch("cli.contentful_management.fetch_entries", side_effect=entries), \
+             mock.patch.object(contentful, "_get_json") as cda:
+            result = self.runner.invoke(
+                cli,
+                ["catalog", "pull", "--space-id", "space", "--token", "CFPAT-test",
+                 "--catalog", str(self.catalog), "--apps", "wordpress",
+                 "--fields", "components", "--output", "-", "--no-progress"],
+            )
+
+        self.assertEqual(result.exit_code, 0, result.stderr)
+        item = json.loads(result.stdout)["items"][0]
+        self.assertEqual(item["components"], ["PostgreSQL", "pgAdmin"])
         cda.assert_not_called()
 
     def test_contentful_token_environment_variable_is_used(self) -> None:
