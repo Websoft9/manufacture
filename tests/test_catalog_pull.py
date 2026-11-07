@@ -38,6 +38,15 @@ class CatalogPullTests(unittest.TestCase):
             {"key": "odoo"},
             {"key": "ghost"},
         ]), encoding="utf-8")
+        self.offer = self.directory / "offer.json"
+        self.offer.write_text(json.dumps([
+            {"id": "wordpress", "type": "app", "applications": ["wordpress"],
+             "productID": {"aws": ["wp-aws"], "azure": ["wp-azure"]}},
+            {"id": "odoo", "type": "app", "applications": ["odoo"],
+             "productID": {"aws": ["odoo-aws"]}},
+            {"id": "ghost", "type": "app", "applications": ["ghost"],
+             "productID": {"aws": ["ghost-aws"]}},
+        ]), encoding="utf-8")
         self.wordpress = entry({
             "key": "wordpress",
             "trademark": "WordPress",
@@ -110,7 +119,7 @@ class CatalogPullTests(unittest.TestCase):
         return self.runner.invoke(
             cli,
             ["catalog", "pull", "--space-id", "space", "--token", "secret-token",
-             "--catalog", str(self.catalog), "--timeout", "5", *args],
+             "--catalog", str(self.catalog), "--offer", str(self.offer), "--timeout", "5", *args],
             **kwargs,
         )
 
@@ -125,6 +134,8 @@ class CatalogPullTests(unittest.TestCase):
         self.assertEqual(dataset["items"][0]["trademark"], "WordPress")
         self.assertEqual(dataset["items"][0]["keywords"], ["Website", "CMS"])
         self.assertEqual(dataset["items"][0]["usecases"], ["Blog", "CMS"])
+        self.assertEqual(dataset["items"][0]["offerCodes"]["aws"], ["wp-aws"])
+        self.assertEqual(dataset["items"][0]["offerCodes"]["azure"], ["wp-azure"])
         self.assertEqual(dataset["items"][1]["overview"], "Odoo overview\nSecond paragraph")
         self.assertEqual(dataset["items"][0]["components"], ["Nginx", "Docker"])
         self.assertEqual(dataset["items"][1]["components"], ["PostgreSQL", "pgAdmin"])
@@ -274,7 +285,7 @@ class CatalogPullTests(unittest.TestCase):
     def test_token_is_required_and_not_echoed(self) -> None:
         result = self.runner.invoke(
             cli,
-            ["catalog", "pull", "--space-id", "space", "--catalog", str(self.catalog)],
+            ["catalog", "pull", "--space-id", "space", "--catalog", str(self.catalog), "--offer", str(self.offer)],
             env={"CONTENTFUL_TOKEN": ""},
         )
         self.assertNotEqual(result.exit_code, 0)
@@ -332,7 +343,8 @@ class CatalogPullTests(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 ["catalog", "pull", "--space-id", "space", "--token", "CFPAT-test",
-                 "--catalog", str(self.catalog), "--timeout", "5", "--apps", "wordpress",
+                 "--catalog", str(self.catalog), "--offer", str(self.offer),
+                 "--timeout", "5", "--apps", "wordpress",
                  "--output", "-", "--no-progress"],
             )
         self.assertEqual(result.exit_code, 0, result.stderr)
@@ -373,8 +385,9 @@ class CatalogPullTests(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 ["catalog", "pull", "--space-id", "space", "--token", "CFPAT-test",
-                 "--catalog", str(self.catalog), "--apps", "wordpress",
-                 "--fields", "components", "--output", "-", "--no-progress"],
+                 "--catalog", str(self.catalog), "--offer", str(self.offer),
+                 "--apps", "wordpress", "--fields", "components",
+                 "--output", "-", "--no-progress"],
             )
 
         self.assertEqual(result.exit_code, 0, result.stderr)
@@ -387,7 +400,8 @@ class CatalogPullTests(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 ["catalog", "pull", "--space-id", "space", "--catalog", str(self.catalog),
-                 "--timeout", "5", "--apps", "wordpress", "--output", "-", "--no-progress"],
+                 "--offer", str(self.offer), "--timeout", "5", "--apps", "wordpress",
+                 "--output", "-", "--no-progress"],
                 env={"CONTENTFUL_TOKEN": "secret-token"},
             )
         self.assertEqual(result.exit_code, 0, result.stderr)
@@ -400,7 +414,8 @@ class CatalogPullTests(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 ["catalog", "pull", "--space-id", "space", "--token", "secret-token",
-                 "--catalog", str(self.catalog), "--timeout", "5", "--no-progress"],
+                 "--catalog", str(self.catalog), "--offer", str(self.offer),
+                 "--timeout", "5", "--no-progress"],
             )
         self.assertEqual(result.exit_code, 0, result.stderr)
         dataset = json.loads((target / "catalog.json").read_text(encoding="utf-8"))
@@ -409,7 +424,7 @@ class CatalogPullTests(unittest.TestCase):
     def test_help_exposes_options(self) -> None:
         result = self.runner.invoke(cli, ["catalog", "pull", "--help"])
         self.assertEqual(result.exit_code, 0)
-        for option in ("--space-id", "--token", "--fields", "--apps", "--progress", "--output"):
+        for option in ("--space-id", "--token", "--fields", "--apps", "--offer", "--progress", "--output"):
             self.assertIn(option, result.output)
 
 

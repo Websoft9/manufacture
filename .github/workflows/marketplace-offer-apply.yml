@@ -22,6 +22,10 @@ on:
         type: choice
         options:
           - aws
+      offer_code:
+        description: "Optional AWS offer code/SKU. Default: resolve from the configured offer source."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -39,6 +43,7 @@ jobs:
       APP: ${{ inputs.app }}
       APP_NAME: ${{ inputs.app_name || inputs.app }}
       CLOUD: ${{ inputs.cloud }}
+      OFFER_CODE: ${{ inputs.offer_code }}
       CONTENTFUL_SPACE_ID: ${{ vars.CONTENTFUL_SPACE_ID || secrets.CONTENTFUL_SPACE_ID }}
       CONTENTFUL_ENVIRONMENT: ${{ vars.CONTENTFUL_ENVIRONMENT || 'master' }}
     steps:
@@ -132,6 +137,49 @@ jobs:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN || vars.AWS_ROLE_ARN }}
           aws-region: us-east-1
           role-session-name: MarketplaceOfferPlan-${{ github.run_id }}
+
+      - name: Resolve Catalog EntityId
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          app = os.environ["APP"]
+          cloud = os.environ["CLOUD"]
+          code = (os.environ.get("OFFER_CODE") or "").strip()
+          catalog_path = Path("/tmp/opencode/offer-run/catalog.json")
+          catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+          item = next((entry for entry in catalog["items"] if entry.get("id") == app), None)
+          if item is None:
+              raise SystemExit(f"application {app!r} is absent from the pulled catalog")
+
+          if not code:
+              codes = (item.get("offerCodes") or {}).get(cloud) or []
+              codes = [str(value).strip() for value in codes if str(value).strip()]
+              if len(codes) != 1:
+                  raise SystemExit(
+                      f"expected exactly one {cloud} offer code for {app!r}, found {len(codes)}; set offer_code explicitly"
+                  )
+              code = codes[0]
+
+          Path("/tmp/opencode/offer-run/offer-code.txt").write_text(code + "\n", encoding="utf-8")
+          print(f"Resolved {cloud} offer code for {app}: {code}")
+          PY
+          mk offer resolve-entity --cloud "$CLOUD" --code "$(cat /tmp/opencode/offer-run/offer-code.txt)" > /tmp/opencode/offer-run/entity.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          catalog_path = Path("/tmp/opencode/offer-run/catalog.json")
+          catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+          item = next(entry for entry in catalog["items"] if entry.get("id") == os.environ["APP"])
+          entity = json.loads(Path("/tmp/opencode/offer-run/entity.json").read_text(encoding="utf-8"))
+          item["entityId"] = entity["entityId"]
+          catalog_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print(f"Wrote Catalog EntityId for {os.environ['APP']}: {item['entityId']}")
+          PY
 
       - name: Generate revision-bound plan
         run: |

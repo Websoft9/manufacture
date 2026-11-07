@@ -48,6 +48,8 @@ Required repository configuration:
   prints non-secret availability booleans for the variable/secret contexts to
   distinguish a missing token from a missing space id.
 - Variable `AWS_PLAN_ROLE_ARN` for read-only planning, or reuse `AWS_ROLE_ARN`.
+  The plan role needs `ListEntities` and `DescribeEntity` so the EntityId can be
+  resolved from the offer code.
 - Protected environment `<cloud>-marketplace-production` (currently
   `aws-marketplace-production`) with required reviewers, optional self-review
   prevention and a `main` branch restriction.

@@ -98,6 +98,37 @@ def load_json(source: str, timeout: float = 30) -> Any:
         return json.load(file)
 
 
+def offer_codes_by_app(source: str, timeout: float = 30) -> dict[str, dict[str, list[str]]]:
+    """Map application ids to marketplace offer codes by platform."""
+    data = load_json(source, timeout)
+    offers = data if isinstance(data, list) else data.get("items")
+    if not isinstance(offers, list):
+        raise ValueError("offer source must be a JSON array or an object with items")
+    result: dict[str, dict[str, list[str]]] = {}
+    for offer in offers:
+        if not isinstance(offer, dict) or offer.get("type") != "app":
+            continue
+        apps: list[str] = []
+        if isinstance(offer.get("id"), str) and offer["id"].strip():
+            apps.append(offer["id"].strip())
+        for app in offer.get("applications") or []:
+            if isinstance(app, str) and app.strip() and app.strip() not in apps:
+                apps.append(app.strip())
+        product_ids = offer.get("productID") or {}
+        if not apps or not isinstance(product_ids, dict):
+            continue
+        for app in apps:
+            by_platform = result.setdefault(app, {})
+            for platform, codes in product_ids.items():
+                if not isinstance(codes, list):
+                    continue
+                values = by_platform.setdefault(str(platform), [])
+                for code in codes:
+                    if isinstance(code, str) and code.strip() and code.strip() not in values:
+                        values.append(code.strip())
+    return result
+
+
 def route_platform(source_key: str, code: str) -> str | None:
     route = ROUTING.get(source_key.lower())
     if not route:

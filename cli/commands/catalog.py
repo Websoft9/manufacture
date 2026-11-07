@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import urllib.error
 
 import click
 
 from .. import contentful, contentful_management
-from ..marketplace import CATALOG_URL, catalog_default_path
+from .. import marketplace
+from ..marketplace import CATALOG_URL, OFFER_URL, catalog_default_path
 
 
 def _progress(enabled: bool):
@@ -36,6 +38,8 @@ def catalog_command() -> None:
               help="Comma-separated Contentful field ids to include.")
 @click.option("--catalog", "catalog_source", default=CATALOG_URL, show_default=True, metavar="SOURCE",
               help="product_en.json URL or local path; only these application ids are returned.")
+@click.option("--offer", "offer_source", default=OFFER_URL, show_default=True, metavar="SOURCE",
+              help="offer.json URL or local path used to add marketplace offer codes.")
 @click.option("--apps", "app_list", metavar="IDS",
               help="Comma-separated application ids to export, for example wordpress,odoo. Default: all catalog applications.")
 @click.option("--api-url", envvar="CONTENTFUL_API_URL", default=contentful.DEFAULT_API_URL, show_default=True,
@@ -62,6 +66,7 @@ def pull_command(
     id_field: str,
     field_list: str,
     catalog_source: str,
+    offer_source: str,
     app_list: str | None,
     api_url: str,
     output: Path | None,
@@ -106,6 +111,14 @@ def pull_command(
         )
     except contentful.ContentfulError as error:
         raise click.ClickException(str(error)) from None
+
+    try:
+        codes = marketplace.offer_codes_by_app(offer_source, timeout)
+    except (OSError, ValueError, urllib.error.URLError) as error:
+        raise click.ClickException(f"failed to read offer source: {error}") from None
+    for item in dataset["items"]:
+        item["offerCodes"] = codes.get(item["id"], {})
+    dataset.setdefault("source", {})["offer"] = offer_source
 
     text = contentful.dumps_dataset(dataset) + "\n"
     output = output if output is not None else catalog_default_path()

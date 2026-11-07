@@ -63,6 +63,7 @@ includes drafts; linked fields may remain as link objects in that mode.
 | `--id-field` | `key` | Contentful field containing the app id (`wordpress`) |
 | `--fields` | `trademark,overview,keywords,usecases,components,summary,hasenterprise` | Requested field ids |
 | `--catalog` | configured `product_en.json` URL | Target application list (URL or local file) |
+| `--offer` | configured `offer.json` URL | Marketplace offer source used to add per-platform `offerCodes` |
 | `--apps` | all catalog applications | Comma-separated application ids to export; must exist in the target catalog |
 | `--output` | `data/.catalog/catalog.json` | JSON destination; `-` means stdout; `MK_CATALOG_DIR` overrides the directory |
 | `--progress` | on | Progress to stderr, leaving stdout valid JSON |
@@ -98,11 +99,16 @@ catalog order is used; with `--apps`, the requested order is used:
       "usecases": [],
       "components": ["PostgreSQL", "pgAdmin"],
       "summary": "...",
-      "hasenterprise": false
+      "hasenterprise": false,
+      "offerCodes": {
+        "aws": ["wp-example-code"],
+        "azure": ["publisher.offer"]
+      }
     }
   ],
   "source": {
     "catalog": "https://artifact.websoft9.com/appstore/release/catalog/product_en.json",
+    "offer": "https://artifact.websoft9.com/cloud_data/offer.json",
     "contentful": {
       "api": "https://cdn.contentful.com",
       "spaceId": "...",
@@ -124,7 +130,10 @@ so `--fields` typos fail loudly.
 By default a target application absent from Contentful still fails the export;
 `--allow-missing` writes the available records and adds a `missing` array.
 
-Array values such as `keywords` and `usecases` are rendered on one line
+`offerCodes` maps the configured offer source's `productID` values by platform.
+It is copied from `offer.json` when the app id or one of its `applications`
+matches; apps without an offer entry receive `{}`. Array values such as
+`keywords` and `usecases` are rendered on one line
 (`["open source", "website"]`), while records and objects remain indented.
 Linked entries/assets and RichText documents are converted to readable values;
 use `--raw` to preserve the exact CDA shape.
