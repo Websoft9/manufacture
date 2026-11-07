@@ -39,7 +39,7 @@ jobs:
       APP: ${{ inputs.app }}
       APP_NAME: ${{ inputs.app_name || inputs.app }}
       CLOUD: ${{ inputs.cloud }}
-      CONTENTFUL_SPACE_ID: ${{ vars.CONTENTFUL_SPACE_ID }}
+      CONTENTFUL_SPACE_ID: ${{ vars.CONTENTFUL_SPACE_ID || secrets.CONTENTFUL_SPACE_ID }}
       CONTENTFUL_ENVIRONMENT: ${{ vars.CONTENTFUL_ENVIRONMENT || 'master' }}
     steps:
       - name: Validate inputs
@@ -64,12 +64,32 @@ jobs:
       - name: Install CLI
         run: python -m pip install --disable-pip-version-check '.[aws]'
 
+      - name: Diagnose Contentful configuration
+        env:
+          SPACE_VAR: ${{ vars.CONTENTFUL_SPACE_ID != '' }}
+          SPACE_SECRET: ${{ secrets.CONTENTFUL_SPACE_ID != '' }}
+          TOKEN_SECRET: ${{ secrets.CONTENTFUL_TOKEN != '' }}
+          TOKEN_VAR: ${{ vars.CONTENTFUL_TOKEN != '' }}
+        run: |
+          {
+            echo "Repository: $GITHUB_REPOSITORY"
+            echo "Repository owner: $GITHUB_REPOSITORY_OWNER"
+            echo "CONTENTFUL_SPACE_ID variable: $SPACE_VAR"
+            echo "CONTENTFUL_SPACE_ID secret: $SPACE_SECRET"
+            echo "CONTENTFUL_TOKEN secret: $TOKEN_SECRET"
+            echo "CONTENTFUL_TOKEN variable: $TOKEN_VAR"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Pull Contentful application data
         env:
           CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
         run: |
-          if [[ -z "$CONTENTFUL_TOKEN" || -z "$CONTENTFUL_SPACE_ID" ]]; then
-            echo "::error::Configure CONTENTFUL_TOKEN as a repository secret and CONTENTFUL_SPACE_ID as a repository variable."
+          if [[ -z "$CONTENTFUL_SPACE_ID" ]]; then
+            echo "::error::CONTENTFUL_SPACE_ID is empty. If it is an organization variable/secret, grant this repository access under Organization settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [[ -z "$CONTENTFUL_TOKEN" ]]; then
+            echo "::error::CONTENTFUL_TOKEN is empty. If it is an organization secret, grant this repository access under Organization settings > Secrets and variables > Actions > Secrets."
             exit 1
           fi
           mkdir -p /tmp/opencode/offer-run

@@ -40,8 +40,13 @@ before running `mk offer apply`.
 Required repository configuration:
 
 - Secret `CONTENTFUL_TOKEN`.
-- Variable `CONTENTFUL_SPACE_ID`; optional variable `CONTENTFUL_ENVIRONMENT`
-  (default `master`).
+- Variable or secret `CONTENTFUL_SPACE_ID`; optional variable
+  `CONTENTFUL_ENVIRONMENT` (default `master`).
+- Organization-level values are not automatic: grant this repository access in
+  Organization settings > Secrets and variables > Actions. A secret restricted
+  to private repositories is unavailable to public repositories. The plan job
+  prints non-secret availability booleans for the variable/secret contexts to
+  distinguish a missing token from a missing space id.
 - Variable `AWS_PLAN_ROLE_ARN` for read-only planning, or reuse `AWS_ROLE_ARN`.
 - Protected environment `<cloud>-marketplace-production` (currently
   `aws-marketplace-production`) with required reviewers, optional self-review
