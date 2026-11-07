@@ -8,3 +8,7 @@ build/
 dist/
 
 data/.catalog/
+
+# Local build metadata
+.build/*
+!.build/.gitkeep
