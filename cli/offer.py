@@ -17,9 +17,9 @@ from .aws_marketplace import (
     change_status,
     current_content,
 )
-from .marketplace import MULTI_VERSION_APPS
+from .marketplace import MULTI_VERSION_APPS, REPO_ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = REPO_ROOT
 DATA = ROOT / "data" / "offer"
 
 
