@@ -76,14 +76,12 @@ jobs:
           TOKEN_SECRET: ${{ secrets.CONTENTFUL_TOKEN != '' }}
           TOKEN_VAR: ${{ vars.CONTENTFUL_TOKEN != '' }}
         run: |
-          {
-            echo "Repository: $GITHUB_REPOSITORY"
-            echo "Repository owner: $GITHUB_REPOSITORY_OWNER"
-            echo "CONTENTFUL_SPACE_ID variable: $SPACE_VAR"
-            echo "CONTENTFUL_SPACE_ID secret: $SPACE_SECRET"
-            echo "CONTENTFUL_TOKEN secret: $TOKEN_SECRET"
-            echo "CONTENTFUL_TOKEN variable: $TOKEN_VAR"
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Repository owner: $GITHUB_REPOSITORY_OWNER"
+          echo "CONTENTFUL_SPACE_ID variable: $SPACE_VAR"
+          echo "CONTENTFUL_SPACE_ID secret: $SPACE_SECRET"
+          echo "CONTENTFUL_TOKEN secret: $TOKEN_SECRET"
+          echo "CONTENTFUL_TOKEN variable: $TOKEN_VAR"
 
       - name: Pull Contentful application data
         env:
@@ -192,28 +190,61 @@ jobs:
       - name: Summarize plan
         run: |
           python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import html
           import json
           import os
           from pathlib import Path
 
           plan = json.loads(Path("/tmp/opencode/offer-run/plan.json").read_text(encoding="utf-8"))
-          print(f"## Offer plan: {os.environ['APP_NAME']} (`{plan.get('key')}`)")
+          app = os.environ["APP"]
+          app_name = os.environ["APP_NAME"]
+          title = app if app_name == app else f"{app_name} (`{app}`)"
+          print(f"## Offer plan: {title}")
           print()
           print(f"- Cloud: `{os.environ['CLOUD']}`")
           print(f"- Entity revision: `{plan.get('baseRevision')}`")
           print(f"- Source hash: `{plan.get('sourceHash')}`")
           print(f"- Plan hash: `{plan.get('planHash')}`")
           print(f"- Publish blockers: {', '.join(plan.get('publishBlockers') or []) or 'none'}")
-          print(f"- Changed fields: {', '.join((plan.get('diff') or {}).keys()) or 'none'}")
+
+          diff = plan.get("diff") or {}
+          print(f"- Pending fields: {len(diff)}")
           print()
-          if plan.get("request") is None:
+
+          if not diff:
               print("No cloud change is required.")
           else:
+              def display(value):
+                  if value is None:
+                      return "(not set)"
+                  if isinstance(value, str):
+                      return value
+                  return json.dumps(value, ensure_ascii=False, indent=2)
+
+              print("### Pending updates")
+              print()
+              for field, change in diff.items():
+                  before = display(change.get("before"))
+                  after = display(change.get("after"))
+                  print("<details>")
+                  print(f"<summary><code>{html.escape(field)}</code></summary>")
+                  print()
+                  print("**Before**")
+                  print()
+                  print(f"<pre>{html.escape(before)}</pre>")
+                  print()
+                  print("**After**")
+                  print()
+                  print(f"<pre>{html.escape(after)}</pre>")
+                  print()
+                  print("</details>")
+                  print()
+
               print("The complete request is stored in the workflow artifact for review.")
           PY
 
       - name: Upload reviewed plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: offer-plan-${{ inputs.cloud }}-${{ inputs.app }}-${{ github.run_id }}
           path: /tmp/opencode/offer-run/
@@ -242,7 +273,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check '.[aws]'
 
       - name: Download reviewed plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offer-plan-${{ inputs.cloud }}-${{ inputs.app }}-${{ github.run_id }}
           path: /tmp/opencode/offer-run
@@ -256,10 +287,10 @@ jobs:
 
       - name: Check AWS apply role
         env:
-          AWS_APPLY_ROLE_ARN: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          AWS_APPLY_ROLE_ARN: ${{ vars.AWS_APPLY_ROLE_ARN || vars.AWS_ROLE_ARN }}
         run: |
           if [[ -z "$AWS_APPLY_ROLE_ARN" ]]; then
-            echo "::error::Configure AWS_APPLY_ROLE_ARN as a variable on the $CLOUD-marketplace-production environment."
+            echo "::error::Configure AWS_APPLY_ROLE_ARN, or AWS_ROLE_ARN, as a variable on the $CLOUD-marketplace-production environment."
             exit 1
           fi
           if [[ ! "$AWS_APPLY_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/.+$ ]]; then
@@ -270,7 +301,7 @@ jobs:
       - name: Configure write AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN || vars.AWS_ROLE_ARN }}
           aws-region: us-east-1
           role-session-name: MarketplaceOfferApply-${{ github.run_id }}
 

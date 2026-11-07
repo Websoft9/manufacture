@@ -54,9 +54,11 @@ Required repository configuration:
   `aws-marketplace-production`) with required reviewers, optional self-review
   prevention and a `main` branch restriction.
 - Environment variable `AWS_APPLY_ROLE_ARN` with write access to
-  `DescribeEntity` and `StartChangeSet` for the target AMI product.
+  `DescribeEntity`, `DescribeChangeSet` and `StartChangeSet` for the target AMI
+  product. If it is absent, the workflow falls back to `AWS_ROLE_ARN`.
 
-The plan job uses read-only credentials. The apply job starts only after
-environment approval, rechecks source snapshots and live revisions, and fails
-closed if either changed. The reviewed artifact contains
+The plan job uses read-only credentials. Its summary lists every pending field
+with before/after values. The apply job starts only after environment approval,
+rechecks source snapshots and live revisions, and fails closed if either
+changed. The reviewed artifact contains
 `catalog.json`, `apps-verson.json`, `preview.json` and `plan.json`.
